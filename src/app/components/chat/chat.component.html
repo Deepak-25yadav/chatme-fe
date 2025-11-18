@@ -1,0 +1,53 @@
+<div class="chat-container">
+  <div class="user-list-panel">
+    <app-user-list
+      [users]="users"
+      [currentUser]="currentUser"
+      [selectedUser]="selectedUser"
+      [onlineUsers]="onlineUsers"
+      [userLastSeen]="userLastSeen"
+      (userSelected)="selectUser($event)">
+    </app-user-list>
+  </div>
+
+  <div class="chat-panel" *ngIf="selectedUser; else noSelection">
+    <div class="chat-header">
+      <div class="user-info">
+        <div class="avatar">{{ selectedUser.name.charAt(0).toUpperCase() }}</div>
+        <div class="user-details">
+          <h3>{{ selectedUser.name }}</h3>
+          <p class="status">
+            <span *ngIf="isUserOnline(selectedUser.userId)" class="online">online</span>
+            <span *ngIf="!isUserOnline(selectedUser.userId)" class="offline">
+              last seen {{ formatLastSeen(getLastSeen(selectedUser.userId) || selectedUser.lastSeen) }}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <app-message-list
+      [messages]="messages"
+      [currentUser]="currentUser"
+      [selectedUser]="selectedUser"
+      [isTyping]="isUserTyping()"
+      (editMessage)="editMessage($event.message, $event.newText)"
+      (deleteMessage)="deleteMessage($event.message, $event.deleteFor)"
+      (replyToMessage)="handleReply($event)">
+    </app-message-list>
+
+    <app-message-input
+      [selectedUser]="selectedUser"
+      [replyTo]="replyToMessage"
+      (sendMessage)="onSendMessage($event)"
+      (typing)="onTyping($event)">
+    </app-message-input>
+  </div>
+
+  <ng-template #noSelection>
+    <div class="no-selection">
+      <p>Select a user to start chatting</p>
+    </div>
+  </ng-template>
+</div>
+

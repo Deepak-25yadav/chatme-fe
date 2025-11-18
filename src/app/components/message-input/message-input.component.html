@@ -1,0 +1,38 @@
+<div class="message-input-container">
+  <!-- Reply preview -->
+  <div *ngIf="replyToMessage" class="reply-preview-bar">
+    <div class="reply-info">
+      <div class="reply-sender">Replying to {{ replyToMessage.senderId === selectedUser?.userId ? selectedUser?.name : 'You' }}</div>
+      <div class="reply-text">{{ replyToMessage.message }}</div>
+    </div>
+    <button class="cancel-reply" (click)="cancelReply()">×</button>
+  </div>
+
+  <div class="input-wrapper">
+    <button class="emoji-button" (click)="toggleEmojiPicker()" type="button">😊</button>
+    
+    <textarea
+      #messageInput
+      [(ngModel)]="messageText"
+      (input)="onInput()"
+      (keypress)="onKeyPress($event)"
+      placeholder="Type a message..."
+      rows="1"
+      class="message-textarea">
+    </textarea>
+
+    <button class="send-button" (click)="send()" [disabled]="!messageText.trim()" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" fill="currentColor"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Simple Emoji Picker -->
+  <div *ngIf="showEmojiPicker" class="emoji-picker">
+    <div class="emoji-grid">
+      <span *ngFor="let emoji of commonEmojis" (click)="addEmoji(emoji)" class="emoji-item">{{ emoji }}</span>
+    </div>
+  </div>
+</div>
+

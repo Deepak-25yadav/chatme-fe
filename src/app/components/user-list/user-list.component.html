@@ -1,0 +1,27 @@
+<div class="user-list-header">
+  <h2>Chats</h2>
+  <div class="current-user" *ngIf="currentUser">
+    <div class="avatar">{{ currentUser.name.charAt(0).toUpperCase() }}</div>
+    <div class="user-name">{{ currentUser.name }}</div>
+  </div>
+</div>
+
+<div class="user-list">
+  <div
+    *ngFor="let user of users"
+    class="user-item"
+    [class.selected]="selectedUser?.userId === user.userId"
+    (click)="selectUser(user)">
+    <div class="avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
+    <div class="user-info">
+      <div class="user-name">{{ user.name }}</div>
+      <div class="user-status">
+        <span *ngIf="isUserOnline(user.userId)" class="online-indicator">●</span>
+        <span *ngIf="!isUserOnline(user.userId)" class="offline-text">
+          {{ formatLastSeen(userLastSeen.get(user.userId) || user.lastSeen) }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
