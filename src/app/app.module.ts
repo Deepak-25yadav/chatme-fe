@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -9,6 +9,10 @@ import { ChatComponent } from './components/chat/chat.component';
 import { UserListComponent } from './components/user-list/user-list.component';
 import { MessageListComponent } from './components/message-list/message-list.component';
 import { MessageInputComponent } from './components/message-input/message-input.component';
+import { LoginComponent } from './components/login/login.component';
+import { SignupComponent } from './components/signup/signup.component';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { ErrorInterceptor } from './interceptors/error.interceptor';
 
 @NgModule({
   declarations: [
@@ -16,7 +20,9 @@ import { MessageInputComponent } from './components/message-input/message-input.
     ChatComponent,
     UserListComponent,
     MessageListComponent,
-    MessageInputComponent
+    MessageInputComponent,
+    LoginComponent,
+    SignupComponent
   ],
   imports: [
     BrowserModule,
@@ -24,7 +30,11 @@ import { MessageInputComponent } from './components/message-input/message-input.
     HttpClientModule,
     FormsModule
   ],
-  providers: [],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
+

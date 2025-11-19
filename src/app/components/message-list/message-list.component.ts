@@ -4,7 +4,10 @@ import { Message, User } from '../../services/chat.service';
 @Component({
   selector: 'app-message-list',
   templateUrl: './message-list.component.html',
-  styleUrls: ['./message-list.component.css']
+  styleUrls: ['./message-list.component.css'],
+  host: {
+    'class': 'message-list-wrapper'
+  }
 })
 export class MessageListComponent implements OnInit, OnChanges, AfterViewChecked, OnDestroy {
   @Input() messages: Message[] = [];

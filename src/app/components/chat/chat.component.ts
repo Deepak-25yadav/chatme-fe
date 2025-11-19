@@ -1,6 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { ChatService, Message, User } from '../../services/chat.service';
 import { SocketService } from '../../services/socket.service';
+import { AuthService } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -8,7 +9,7 @@ import { Subscription } from 'rxjs';
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
-export class ChatComponent implements OnInit, OnDestroy {
+export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentUser: User | null = null;
   selectedUser: User | null = null;
   users: User[] = [];
@@ -18,10 +19,14 @@ export class ChatComponent implements OnInit, OnDestroy {
   userLastSeen: Map<string, Date> = new Map();
 
   private subscriptions: Subscription[] = [];
+  private shouldScroll = false;
+  
+  @ViewChild('messageContainer') private messageContainer?: ElementRef;
 
   constructor(
     private chatService: ChatService,
-    private socketService: SocketService
+    private socketService: SocketService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -31,23 +36,20 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   initializeUser(): void {
-    // Get or create current user (you can modify this to get from login)
-    const userId = localStorage.getItem('userId') || `user_${Date.now()}`;
-    const userName = localStorage.getItem('userName') || `User ${userId.slice(-4)}`;
-    
-    localStorage.setItem('userId', userId);
-    localStorage.setItem('userName', userName);
-
-    this.currentUser = {
-      userId,
-      name: userName,
-      isOnline: true,
-      lastSeen: new Date()
-    };
-
-    this.chatService.createOrUpdateUser(this.currentUser).subscribe(user => {
-      this.currentUser = user;
-      this.socketService.join(user.userId, user.name);
+    // Get authenticated user from AuthService
+    this.authService.currentUser$.subscribe((user: any) => {
+      if (user) {
+        this.currentUser = {
+          userId: user.userId,
+          name: user.name,
+          email: user.email,
+          isOnline: true,
+          lastSeen: new Date()
+        };
+        
+        // Join socket with authenticated user
+        this.socketService.join(user.userId, user.name);
+      }
     });
   }
 
@@ -73,10 +75,19 @@ export class ChatComponent implements OnInit, OnDestroy {
     // Listen for message sent confirmation
     this.subscriptions.push(
       this.socketService.onMessageSent().subscribe((message: Message) => {
-        const index = this.messages.findIndex(m => !m._id);
+        // Find and replace the temporary message
+        const index = this.messages.findIndex(m => 
+          m.senderId === message.senderId && 
+          m.receiverId === message.receiverId && 
+          m.message === message.message &&
+          !m._id
+        );
+        
         if (index !== -1) {
+          // Replace temporary message with the real one
           this.messages[index] = message;
         } else {
+          // Add if not found (shouldn't happen normally)
           this.messages.push(message);
         }
         this.sortMessages();
@@ -166,7 +177,11 @@ export class ChatComponent implements OnInit, OnDestroy {
         if (user.isOnline) {
           this.onlineUsers.add(user.userId);
         }
-        this.userLastSeen.set(user.userId, user.lastSeen);
+        // Convert lastSeen string to Date object if it's a string
+        const lastSeenDate = typeof user.lastSeen === 'string' 
+          ? new Date(user.lastSeen) 
+          : user.lastSeen;
+        this.userLastSeen.set(user.userId, lastSeenDate);
       });
     });
   }
@@ -181,21 +196,27 @@ export class ChatComponent implements OnInit, OnDestroy {
     if (!this.currentUser || !this.selectedUser) return;
 
     this.chatService.getChatHistory(this.currentUser.userId, this.selectedUser.userId)
-      .subscribe(messages => {
-        this.messages = messages;
-        this.sortMessages();
-        
-        // Mark unread messages as seen
-        const unreadMessages = messages.filter(
-          m => m.receiverId === this.currentUser?.userId && m.status !== 'seen'
-        );
-        if (unreadMessages.length > 0) {
-          const messageIds = unreadMessages.map(m => m._id!).filter(id => id);
-          if (messageIds.length > 0) {
-            setTimeout(() => {
-              this.markMessagesAsSeen(messageIds);
-            }, 1000);
+      .subscribe({
+        next: (messages) => {
+          console.log('Loaded messages:', messages);
+          this.messages = messages;
+          this.sortMessages();
+          
+          // Mark unread messages as seen
+          const unreadMessages = messages.filter(
+            m => m.receiverId === this.currentUser?.userId && m.status !== 'seen'
+          );
+          if (unreadMessages.length > 0) {
+            const messageIds = unreadMessages.map(m => m._id!).filter(id => id);
+            if (messageIds.length > 0) {
+              setTimeout(() => {
+                this.markMessagesAsSeen(messageIds);
+              }, 1000);
+            }
           }
+        },
+        error: (error) => {
+          console.error('Error loading chat history:', error);
         }
       });
   }
@@ -276,6 +297,7 @@ export class ChatComponent implements OnInit, OnDestroy {
       const timeB = new Date(b.timestamp).getTime();
       return timeA - timeB;
     });
+    this.shouldScroll = true;
   }
 
   isUserTyping(): boolean {
@@ -287,13 +309,21 @@ export class ChatComponent implements OnInit, OnDestroy {
     return this.onlineUsers.has(userId);
   }
 
-  getLastSeen(userId: string): Date | null {
+  getLastSeen(userId: string): Date | string | null {
     return this.userLastSeen.get(userId) || null;
   }
 
-  formatLastSeen(date: Date): string {
+  formatLastSeen(date: Date | string): string {
+    if (!date) return 'Unknown';
+    
+    // Convert to Date object if it's a string
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if valid date
+    if (isNaN(dateObj.getTime())) return 'Unknown';
+    
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff = now.getTime() - dateObj.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -302,7 +332,28 @@ export class ChatComponent implements OnInit, OnDestroy {
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return dateObj.toLocaleDateString();
+  }
+
+  ngAfterViewChecked(): void {
+    if (this.shouldScroll) {
+      this.scrollToBottom();
+      this.shouldScroll = false;
+    }
+  }
+
+  private scrollToBottom(): void {
+    try {
+      if (this.messageContainer) {
+        this.messageContainer.nativeElement.scrollTop = this.messageContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Scroll error:', err);
+    }
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 
   ngOnDestroy(): void {

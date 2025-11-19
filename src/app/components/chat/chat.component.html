@@ -24,6 +24,11 @@
           </p>
         </div>
       </div>
+      <div class="header-actions" *ngIf="currentUser">
+        <button class="logout-btn" (click)="logout()" title="Logout">
+          Logout
+        </button>
+      </div>
     </div>
 
     <app-message-list
@@ -45,8 +50,20 @@
   </div>
 
   <ng-template #noSelection>
-    <div class="no-selection">
-      <p>Select a user to start chatting</p>
+    <div class="chat-panel">
+      <div class="chat-header">
+        <div class="user-info">
+          <h3>ChatMe</h3>
+        </div>
+        <div class="header-actions" *ngIf="currentUser">
+          <button class="logout-btn" (click)="logout()" title="Logout">
+            Logout
+          </button>
+        </div>
+      </div>
+      <div class="no-selection">
+        <p>Select a user to start chatting</p>
+      </div>
     </div>
   </ng-template>
 </div>

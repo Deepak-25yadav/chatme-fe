@@ -1,9 +1,13 @@
 <div class="message-container" #messageContainer>
+  <div *ngIf="groupedMessages.length === 0" class="empty-messages">
+    <p>No messages yet. Start the conversation!</p>
+  </div>
+  
   <div *ngFor="let group of groupedMessages" class="message-group">
     <div class="date-separator">
       <span>{{ formatDate(group.date) }}</span>
     </div>
-    
+
     <div *ngFor="let message of group.messages" class="message-wrapper">
       <div class="message" [class.my-message]="isMyMessage(message)" [class.other-message]="!isMyMessage(message)">
         <div class="message-content">
@@ -11,59 +15,53 @@
           <div *ngIf="message.replyTo" class="reply-preview">
             <div class="reply-line"></div>
             <div class="reply-content">
-              <!-- <div class="reply-sender">{{ message.replyTo.senderId === currentUser?.userId ? 'You' : selectedUser?.name }}</div> -->
-              <!-- <div class="reply-sender">Replying to {{ replyToMessage.senderId === selectedUser?.userId ? selectedUser.name : 'You' }}</div> -->
-              <div class="reply-sender">Replying to You </div>
+              <div class="reply-sender">
+                {{ message.replyTo.senderId === currentUser?.userId ? 'You' : selectedUser?.name }}
+              </div>
               <div class="reply-text">{{ message.replyTo.message }}</div>
             </div>
           </div>
 
-          <!-- Message text -->
-          <div class="message-text" *ngIf="editingMessageId !== message._id">
-            {{ message.message }}
-            <span *ngIf="message.isEdited" class="edited-label">(edited)</span>
-          </div>
-
-          <!-- Edit input -->
+          <!-- Edit mode -->
           <div *ngIf="editingMessageId === message._id" class="edit-input">
-            <input 
-              type="text" 
-              [(ngModel)]="editingText" 
-              (keyup.enter)="saveEdit(message)"
-              (keyup.escape)="cancelEdit()"
-              #editInput>
+            <input type="text" [(ngModel)]="editingText" (keyup.enter)="saveEdit(message)"
+              (keyup.escape)="cancelEdit()" #editInput>
             <button (click)="saveEdit(message)">✓</button>
             <button (click)="cancelEdit()">✕</button>
+          </div>
+
+          <!-- Message text -->
+          <div *ngIf="editingMessageId !== message._id" class="message-text">
+            {{ message.message }}
+            <span *ngIf="message.isEdited" class="edited-label">(edited)</span>
           </div>
 
           <!-- Message info -->
           <div class="message-info">
             <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-            <span *ngIf="isMyMessage(message)" 
-                  class="message-status" 
-                  [class.seen]="getMessageStatusClass(message) === 'seen'">
+            <span *ngIf="isMyMessage(message)" class="message-status"
+              [class.seen]="getMessageStatusClass(message) === 'seen'">
               {{ getMessageStatusIcon(message) }}
             </span>
           </div>
-        </div>
 
-        <!-- Message menu -->
-        <div class="message-menu" *ngIf="isMyMessage(message)">
-          <button class="menu-button" (click)="toggleMenu(message._id!)">⋮</button>
-          <div class="menu-dropdown" *ngIf="showMenuForMessage === message._id">
-            <button (click)="startEdit(message)">Edit</button>
-            <button (click)="replyTo(message)">Reply</button>
-            <button (click)="deleteForMe(message)">Delete for me</button>
-            <button (click)="deleteForBoth(message)">Delete for both</button>
+          <!-- Message menu -->
+          <div class="message-menu" *ngIf="isMyMessage(message)">
+            <button class="menu-button" (click)="toggleMenu(message._id!)">⋮</button>
+            <div class="menu-dropdown" *ngIf="showMenuForMessage === message._id">
+              <button (click)="startEdit(message)">Edit</button>
+              <button (click)="replyTo(message)">Reply</button>
+              <button (click)="deleteForMe(message)">Delete for me</button>
+              <button (click)="deleteForBoth(message)">Delete for both</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div *ngIf="isTyping" class="typing-indicator">
-    <span></span>
-    <span></span>
-    <span></span>
+    <div *ngIf="isTyping" class="typing-indicator">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
   </div>
-</div>

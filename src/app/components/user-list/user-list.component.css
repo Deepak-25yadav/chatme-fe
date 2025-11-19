@@ -21,7 +21,8 @@
 
 .user-list {
   overflow-y: auto;
-  height: calc(100vh - 120px);
+  flex: 1;
+  min-height: 0;
 }
 
 .user-item {

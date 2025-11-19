@@ -22,9 +22,17 @@ export class UserListComponent {
     return this.onlineUsers.has(userId);
   }
 
-  formatLastSeen(date: Date): string {
+  formatLastSeen(date: Date | string | null | undefined): string {
+    if (!date) return 'Unknown';
+    
+    // Convert to Date object if it's a string
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if valid date
+    if (isNaN(dateObj.getTime())) return 'Unknown';
+    
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff = now.getTime() - dateObj.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -33,7 +41,7 @@ export class UserListComponent {
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return dateObj.toLocaleDateString();
   }
 }
 
