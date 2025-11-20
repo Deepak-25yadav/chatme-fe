@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { ChatService, Message, User } from '../../services/chat.service';
 import { SocketService } from '../../services/socket.service';
 import { AuthService } from '../../services/auth.service';
@@ -26,19 +26,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     private chatService: ChatService,
     private socketService: SocketService,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    console.log('🚀 Chat component initialized');
+    // Initialize user first (this will join socket room)
     this.initializeUser();
+    // Setup socket listeners (they will work once user is initialized)
     this.setupSocketListeners();
+    // Load users list
     this.loadUsers();
   }
 
   initializeUser(): void {
-    // Get authenticated user from AuthService
-    this.authService.currentUser$.subscribe((user: any) => {
+    console.log('👤 Initializing user...');
+    const userSub = this.authService.currentUser$.subscribe((user: any) => {
       if (user) {
+        console.log('✅ User found:', user.userId);
         this.currentUser = {
           userId: user.userId,
           name: user.name,
@@ -47,50 +53,88 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           lastSeen: new Date()
         };
         
-        // Join socket with authenticated user
-        this.socketService.join(user.userId, user.name);
+        // Join socket room - wait for connection if needed
+        this.socketService.onConnect().subscribe(() => {
+          console.log('✅ Socket connected, joining room for user:', user.userId);
+          this.socketService.join(user.userId, user.name);
+        });
+        
+        // Also try to join immediately if already connected
+        if (this.socketService.isConnected()) {
+          console.log('Socket already connected, joining immediately');
+          this.socketService.join(user.userId, user.name);
+        }
+        
+        // Unsubscribe after first emission
+        userSub.unsubscribe();
+      } else {
+        console.warn('⚠️ No user found in AuthService');
       }
     });
+    
+    this.subscriptions.push(userSub);
   }
 
   setupSocketListeners(): void {
-    // Listen for received messages
+    console.log('🔧 Setting up socket listeners...');
+    
+    // ===== LISTEN FOR RECEIVED MESSAGES (INCOMING FROM OTHER USERS) =====
     this.subscriptions.push(
       this.socketService.onReceiveMessage().subscribe((message: Message) => {
-        if (this.selectedUser && 
-            (message.senderId === this.selectedUser.userId || message.receiverId === this.selectedUser.userId)) {
-          this.messages.push(message);
-          this.sortMessages();
-          
-          // Mark as delivered if current user is receiver
-          if (message.receiverId === this.currentUser?.userId) {
-            setTimeout(() => {
-              this.markMessageAsSeen(message._id!);
-            }, 1000);
-          }
+        console.log('📨📨📨 ===== RECEIVED MESSAGE VIA SOCKET =====');
+        console.log('Message data:', JSON.stringify(message, null, 2));
+        console.log('Current user ID:', this.currentUser?.userId);
+        console.log('Selected user ID:', this.selectedUser?.userId);
+        console.log('Message sender ID:', message.senderId);
+        console.log('Message receiver ID:', message.receiverId);
+        
+        // Ensure currentUser is set
+        if (!this.currentUser) {
+          console.warn('⚠️ Current user not set, waiting 500ms...');
+          setTimeout(() => this.handleReceivedMessage(message), 500);
+          return;
         }
+        
+        // Handle the received message
+        this.handleReceivedMessage(message);
       })
     );
 
-    // Listen for message sent confirmation
+    // ===== LISTEN FOR MESSAGE SENT CONFIRMATION (FOR SENDER) =====
     this.subscriptions.push(
       this.socketService.onMessageSent().subscribe((message: Message) => {
+        console.log('✅✅✅ ===== MESSAGE SENT CONFIRMATION =====');
+        console.log('Confirmed message:', JSON.stringify(message, null, 2));
+        
         // Find and replace the temporary message
-        const index = this.messages.findIndex(m => 
+        const tempIndex = this.messages.findIndex(m => 
+          !m._id && 
           m.senderId === message.senderId && 
-          m.receiverId === message.receiverId && 
+          m.receiverId === message.receiverId &&
           m.message === message.message &&
-          !m._id
+          Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()) < 10000 // Within 10 seconds
         );
         
-        if (index !== -1) {
-          // Replace temporary message with the real one
-          this.messages[index] = message;
+        if (tempIndex !== -1) {
+          console.log('🔄 Replacing temp message at index:', tempIndex);
+          // Replace temp message with confirmed message
+          this.messages[tempIndex] = { ...message };
         } else {
-          // Add if not found (shouldn't happen normally)
-          this.messages.push(message);
+          // Check if message already exists (by _id)
+          const existsIndex = this.messages.findIndex(m => m._id === message._id);
+          if (existsIndex === -1) {
+            console.log('➕ Adding new confirmed message (temp not found)');
+            this.messages.push({ ...message });
+          } else {
+            console.log('🔄 Updating existing message at index:', existsIndex);
+            this.messages[existsIndex] = { ...message };
+          }
         }
+        
+        // Sort and update UI
         this.sortMessages();
+        this.cdr.detectChanges();
+        console.log('✅ Message list updated. Total messages:', this.messages.length);
       })
     );
 
@@ -100,6 +144,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         const message = this.messages.find(m => m._id === data.messageId);
         if (message) {
           message.status = data.status as any;
+          this.cdr.detectChanges();
         }
       })
     );
@@ -113,6 +158,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             message.status = 'seen';
           }
         });
+        this.cdr.detectChanges();
       })
     );
 
@@ -124,6 +170,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         } else {
           this.typingUsers.delete(data.userId);
         }
+        this.cdr.detectChanges();
       })
     );
 
@@ -134,6 +181,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (message) {
           message.message = data.newMessage;
           message.isEdited = true;
+          this.cdr.detectChanges();
         }
       })
     );
@@ -142,6 +190,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.subscriptions.push(
       this.socketService.onMessageDeleted().subscribe((data: { messageId: string }) => {
         this.messages = this.messages.filter(m => m._id !== data.messageId);
+        this.cdr.detectChanges();
       })
     );
 
@@ -153,6 +202,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (user) {
           user.isOnline = true;
         }
+        this.cdr.detectChanges();
       })
     );
 
@@ -166,6 +216,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           user.lastSeen = new Date();
           this.userLastSeen.set(data.userId, user.lastSeen);
         }
+        this.cdr.detectChanges();
       })
     );
   }
@@ -177,30 +228,171 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (user.isOnline) {
           this.onlineUsers.add(user.userId);
         }
-        // Convert lastSeen string to Date object if it's a string
         const lastSeenDate = typeof user.lastSeen === 'string' 
           ? new Date(user.lastSeen) 
           : user.lastSeen;
         this.userLastSeen.set(user.userId, lastSeenDate);
       });
+      this.cdr.detectChanges();
     });
   }
 
   selectUser(user: User): void {
+    console.log('👤 Selecting user:', user.userId);
     this.selectedUser = user;
+    // Clear current messages
+    this.messages = [];
+    // Load chat history
     this.loadChatHistory();
     this.socketService.getOnlineStatus(user.userId);
+    
+    // Verify socket connection
+    if (!this.socketService.isConnected()) {
+      console.warn('⚠️ Socket not connected when selecting user');
+    } else {
+      console.log('✅ Socket is connected, socket ID:', this.socketService.getSocketId());
+    }
+  }
+
+  // ===== HANDLE RECEIVED MESSAGE - CRITICAL FOR REAL-TIME MESSAGING =====
+  private handleReceivedMessage(message: Message): void {
+    if (!this.currentUser) {
+      console.error('❌ Cannot handle message: currentUser is null');
+      return;
+    }
+
+    // Check if message is for current user (either as sender or receiver)
+    const isForCurrentUser = message.senderId === this.currentUser.userId || 
+                             message.receiverId === this.currentUser.userId;
+    
+    if (!isForCurrentUser) {
+      console.log('⚠️ Message not for current user, ignoring');
+      return;
+    }
+    
+    // Determine the other user in the conversation
+    const otherUserId = message.senderId === this.currentUser.userId 
+      ? message.receiverId 
+      : message.receiverId;
+    
+    console.log('🔍 Checking if message should be displayed...');
+    console.log('  - Other user ID:', otherUserId);
+    console.log('  - Selected user ID:', this.selectedUser?.userId);
+    
+    // Check if message is for current chat (if a chat is selected)
+    const isForCurrentChat = this.selectedUser && 
+        (message.senderId === this.selectedUser.userId || message.receiverId === this.selectedUser.userId);
+    
+    if (isForCurrentChat) {
+      // Message is for the currently selected chat - ADD IT IMMEDIATELY
+      const exists = this.messages.some(m => m._id === message._id);
+      if (!exists) {
+        console.log('✅✅✅ ADDING MESSAGE TO UI IN REAL-TIME ✅✅✅');
+        console.log('  - Message ID:', message._id);
+        console.log('  - Message text:', message.message);
+        console.log('  - Current messages count:', this.messages.length);
+        
+        // Create a new array reference to trigger change detection
+        this.messages = [...this.messages, { ...message }];
+        this.sortMessages();
+        
+        // Force change detection to update UI immediately
+        this.cdr.detectChanges();
+        
+        console.log('  - New messages count:', this.messages.length);
+        console.log('✅ Message successfully added to UI');
+        
+        // Mark as delivered if current user is receiver
+        if (message.receiverId === this.currentUser.userId) {
+          setTimeout(() => {
+            this.markMessageAsSeen(message._id!);
+          }, 1000);
+        }
+      } else {
+        console.log('⚠️ Message already exists in current chat, skipping duplicate');
+      }
+    } else {
+      // Message is for current user but not for currently selected chat
+      console.log(`ℹ️ Message received for user ${otherUserId} but not currently viewing that chat.`);
+      console.log('   Message will be shown when user selects that chat.');
+      // Don't add to messages array - it will be loaded when user selects that chat
+    }
   }
 
   loadChatHistory(): void {
-    if (!this.currentUser || !this.selectedUser) return;
+    if (!this.currentUser || !this.selectedUser) {
+      console.log('Cannot load chat history: missing currentUser or selectedUser');
+      return;
+    }
 
+    console.log('📥 ===== LOADING CHAT HISTORY VIA SOCKET =====');
+    console.log('Current user:', this.currentUser.userId);
+    console.log('Selected user:', this.selectedUser.userId);
+    
+    // Load via socket
+    if (this.socketService.isConnected()) {
+      // Request chat history via socket
+      this.socketService.loadChatHistory(this.currentUser.userId, this.selectedUser.userId);
+      
+      // Listen for chat history response (one-time)
+      const historySub = this.socketService.onChatHistoryLoaded().subscribe({
+        next: (data: { userId1: string; userId2: string; messages: Message[] }) => {
+          // Check if this is for the currently selected user
+          const isForCurrentChat = 
+            (data.userId1 === this.currentUser?.userId && data.userId2 === this.selectedUser?.userId) ||
+            (data.userId2 === this.currentUser?.userId && data.userId1 === this.selectedUser?.userId);
+          
+          if (isForCurrentChat) {
+            console.log('✅ Chat history loaded via socket:', data.messages.length, 'messages');
+            // Replace messages array with loaded history
+            this.messages = [...data.messages];
+            this.sortMessages();
+            this.cdr.detectChanges();
+            
+            // Mark unread messages as seen
+            const unreadMessages = data.messages.filter(
+              m => m.receiverId === this.currentUser?.userId && m.status !== 'seen'
+            );
+            if (unreadMessages.length > 0) {
+              const messageIds = unreadMessages.map(m => m._id!).filter(id => id);
+              if (messageIds.length > 0) {
+                setTimeout(() => {
+                  this.markMessagesAsSeen(messageIds);
+                }, 1000);
+              }
+            }
+          }
+          
+          // Unsubscribe after first response
+          historySub.unsubscribe();
+        },
+        error: (error) => {
+          console.error('Error loading chat history via socket:', error);
+          // Fallback to API if socket fails
+          this.loadChatHistoryFromAPI();
+          historySub.unsubscribe();
+        }
+      });
+      
+      this.subscriptions.push(historySub);
+    } else {
+      console.warn('Socket not connected, using API fallback');
+      this.loadChatHistoryFromAPI();
+    }
+  }
+
+  // Fallback to API if socket fails
+  private loadChatHistoryFromAPI(): void {
+    if (!this.currentUser || !this.selectedUser) return;
+    
+    console.log('📥 Loading chat history from API (fallback)');
     this.chatService.getChatHistory(this.currentUser.userId, this.selectedUser.userId)
       .subscribe({
         next: (messages) => {
-          console.log('Loaded messages:', messages);
-          this.messages = messages;
+          console.log('Loaded messages from API:', messages.length, 'messages');
+          this.messages = [...messages];
           this.sortMessages();
+          this.cdr.detectChanges();
           
           // Mark unread messages as seen
           const unreadMessages = messages.filter(
@@ -216,7 +408,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           }
         },
         error: (error) => {
-          console.error('Error loading chat history:', error);
+          console.error('Error loading chat history from API:', error);
         }
       });
   }
@@ -235,8 +427,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   sendMessage(data: { message: string; replyTo?: Message }): void {
     const { message: messageText, replyTo } = data;
-    if (!this.currentUser || !this.selectedUser || !messageText.trim()) return;
+    
+    // Validation
+    if (!this.currentUser || !this.selectedUser || !messageText.trim()) {
+      console.warn('❌ Cannot send message: missing user or message text');
+      return;
+    }
 
+    if (!this.socketService.isConnected()) {
+      console.error('❌ Cannot send message: socket not connected');
+      alert('Connection lost. Please refresh the page.');
+      return;
+    }
+
+    console.log('📤📤📤 ===== SENDING MESSAGE =====');
+    console.log('Sender:', this.currentUser.userId);
+    console.log('Receiver:', this.selectedUser.userId);
+    console.log('Message:', messageText);
+
+    // Create temporary message for immediate UI update
     const tempMessage: Message = {
       chatRoomId: '',
       senderId: this.currentUser.userId,
@@ -250,15 +459,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       deleteType: 'none'
     };
 
-    this.messages.push(tempMessage);
+    // Add temp message to UI immediately (optimistic update)
+    console.log('➕ Adding temp message to UI immediately');
+    this.messages = [...this.messages, tempMessage];
     this.sortMessages();
+    this.cdr.detectChanges();
+    console.log('✅ Temp message added. Total messages:', this.messages.length);
 
+    // Send via socket
     this.socketService.sendMessage({
       senderId: this.currentUser.userId,
       receiverId: this.selectedUser.userId,
       message: messageText,
       replyTo: replyTo?._id
     });
+    
+    console.log('📤 Message sent via socket, waiting for confirmation...');
   }
 
   onSendMessage(data: { message: string; replyTo?: Message }): void {
@@ -288,7 +504,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   handleReply(event: { message: Message; replyText: string }): void {
     this.replyToMessage = event.message;
-    // Focus on input to allow user to type reply
   }
 
   sortMessages(): void {
@@ -313,13 +528,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return this.userLastSeen.get(userId) || null;
   }
 
-  formatLastSeen(date: Date | string): string {
+  formatLastSeen(date: Date | string | null | undefined): string {
     if (!date) return 'Unknown';
     
-    // Convert to Date object if it's a string
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     
-    // Check if valid date
     if (isNaN(dateObj.getTime())) return 'Unknown';
     
     const now = new Date();
@@ -357,8 +570,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy(): void {
+    console.log('🧹 Cleaning up chat component...');
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.socketService.disconnect();
   }
 }
-
