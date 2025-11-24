@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef, HostListener } from '@angular/core';
 import { ChatService, Message, User } from '../../services/chat.service';
 import { SocketService } from '../../services/socket.service';
 import { AuthService } from '../../services/auth.service';
@@ -23,6 +23,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   
   @ViewChild('messageContainer') private messageContainer?: ElementRef;
 
+  isMobileView = false;
+  isUserListVisible = true;
+
   constructor(
     private chatService: ChatService,
     private socketService: SocketService,
@@ -32,6 +35,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnInit(): void {
     console.log('🚀 Chat component initialized');
+    this.evaluateViewport();
     // Initialize user first (this will join socket room)
     this.initializeUser();
     // Setup socket listeners (they will work once user is initialized)
@@ -65,6 +69,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.socketService.join(user.userId, user.name);
         }
         
+        if (this.isMobileView && this.selectedUser) {
+          this.isUserListVisible = false;
+        }
+
         // Unsubscribe after first emission
         userSub.unsubscribe();
       } else {
@@ -246,6 +254,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.loadChatHistory();
     this.socketService.getOnlineStatus(user.userId);
     
+    if (this.isMobileView) {
+      this.isUserListVisible = false;
+    }
+
     // Verify socket connection
     if (!this.socketService.isConnected()) {
       console.warn('⚠️ Socket not connected when selecting user');
@@ -378,6 +390,31 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     } else {
       console.warn('Socket not connected, using API fallback');
       this.loadChatHistoryFromAPI();
+    }
+  }
+
+  toggleUserList(forceOpen?: boolean): void {
+    if (!this.isMobileView) return;
+    if (typeof forceOpen === 'boolean') {
+      this.isUserListVisible = forceOpen;
+    } else {
+      this.isUserListVisible = !this.isUserListVisible;
+    }
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.evaluateViewport();
+  }
+
+  private evaluateViewport(): void {
+    const wasMobile = this.isMobileView;
+    this.isMobileView = window.innerWidth <= 900;
+
+    if (!this.isMobileView) {
+      this.isUserListVisible = true;
+    } else if (!wasMobile || this.selectedUser === null) {
+      this.isUserListVisible = this.selectedUser === null;
     }
   }
 

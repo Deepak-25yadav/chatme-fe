@@ -1,5 +1,15 @@
-<div class="chat-container">
-  <div class="user-list-panel">
+<div class="chat-container" [class.mobile]="isMobileView">
+  <div
+    class="user-list-panel"
+    [class.mobile]="isMobileView"
+    [class.visible]="isUserListVisible"
+    [class.hidden]="isMobileView && !isUserListVisible">
+    <div class="mobile-user-list-header" *ngIf="isMobileView">
+      <h2>Chats</h2>
+      <button class="icon-button ghost" (click)="toggleUserList(false)" aria-label="Close conversation list">
+        &times;
+      </button>
+    </div>
     <app-user-list
       [users]="users"
       [currentUser]="currentUser"
@@ -10,18 +20,33 @@
     </app-user-list>
   </div>
 
-  <div class="chat-panel" *ngIf="selectedUser; else noSelection">
+  <div
+    class="mobile-overlay"
+    *ngIf="isMobileView && isUserListVisible"
+    (click)="toggleUserList(false)">
+  </div>
+
+  <div class="chat-panel" [class.mobile]="isMobileView" *ngIf="selectedUser; else noSelection">
     <div class="chat-header">
-      <div class="user-info">
-        <div class="avatar">{{ selectedUser.name.charAt(0).toUpperCase() }}</div>
-        <div class="user-details">
-          <h3>{{ selectedUser.name }}</h3>
-          <p class="status">
-            <span *ngIf="isUserOnline(selectedUser.userId)" class="online">online</span>
-            <span *ngIf="!isUserOnline(selectedUser.userId)" class="offline">
-              last seen {{ formatLastSeen(getLastSeen(selectedUser.userId) || selectedUser.lastSeen) }}
-            </span>
-          </p>
+      <div class="header-left">
+        <button
+          class="icon-button ghost"
+          *ngIf="isMobileView"
+          (click)="toggleUserList(true)"
+          aria-label="Open conversation list">
+          &#9776;
+        </button>
+        <div class="user-info">
+          <div class="avatar">{{ selectedUser.name.charAt(0).toUpperCase() }}</div>
+          <div class="user-details">
+            <h3>{{ selectedUser.name }}</h3>
+            <p class="status">
+              <span *ngIf="isUserOnline(selectedUser.userId)" class="online">online</span>
+              <span *ngIf="!isUserOnline(selectedUser.userId)" class="offline">
+                last seen {{ formatLastSeen(getLastSeen(selectedUser.userId) || selectedUser.lastSeen) }}
+              </span>
+            </p>
+          </div>
         </div>
       </div>
       <div class="header-actions" *ngIf="currentUser">
@@ -50,10 +75,19 @@
   </div>
 
   <ng-template #noSelection>
-    <div class="chat-panel">
+    <div class="chat-panel" [class.mobile]="isMobileView">
       <div class="chat-header">
-        <div class="user-info">
-          <h3>ChatMe</h3>
+        <div class="header-left">
+          <button
+            class="icon-button ghost"
+            *ngIf="isMobileView"
+            (click)="toggleUserList(true)"
+            aria-label="Open conversation list">
+            &#9776;
+          </button>
+          <div class="user-info">
+            <h3>ChatMe</h3>
+          </div>
         </div>
         <div class="header-actions" *ngIf="currentUser">
           <button class="logout-btn" (click)="logout()" title="Logout">

@@ -176,6 +176,35 @@
   opacity: 1;
 }
 
+@media (max-width: 900px) {
+  .message-container {
+    padding: 16px;
+  }
+
+  .message-content {
+    max-width: 80%;
+  }
+}
+
+@media (max-width: 600px) {
+  .message-container {
+    padding: 12px 10px 16px;
+  }
+
+  .message-content {
+    max-width: 90%;
+    padding: 10px 12px;
+  }
+
+  .message-text {
+    font-size: 0.95rem;
+  }
+
+  .message-info {
+    font-size: 0.75rem;
+  }
+}
+
 .menu-dropdown {
   position: absolute;
   bottom: 100%;
