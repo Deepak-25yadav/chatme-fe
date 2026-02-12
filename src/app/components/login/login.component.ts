@@ -13,6 +13,16 @@ export class LoginComponent {
   errorMessage: string = '';
   isLoading: boolean = false;
   returnUrl: string = '/';
+  isPasswordVisible: boolean = false;
+  isEmailVisible: boolean = true;
+
+  togglePasswordVisibility(): void {
+    this.isPasswordVisible = !this.isPasswordVisible;
+  }
+
+  toggleEmailVisibility(): void {
+    this.isEmailVisible = !this.isEmailVisible;
+  }
 
   constructor(
     private authService: AuthService,
