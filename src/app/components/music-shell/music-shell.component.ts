@@ -21,6 +21,9 @@ export class MusicShellComponent implements OnInit, OnDestroy {
   modalEditItem: MusicItem | null = null;
   lastSavedTrack: MusicItem | null = null;
 
+  // ── Avatar auth dropdown ─────────────────────────────────────────────────
+  isAvatarMenuOpen = false;
+
   tabs = [
     { id: 'home',    label: 'Home',    icon: 'home',    route: '/music' },
     { id: 'mp4',     label: 'Videos',  icon: 'video',   route: '/music/mp4' },
@@ -120,7 +123,18 @@ export class MusicShellComponent implements OnInit, OnDestroy {
     console.log('[Shell] outlet activated:', component?.constructor?.name);
   }
 
+  // ── Avatar auth dropdown ───────────────────────────────────────────────────
+  toggleAvatarMenu(event: Event): void {
+    event.stopPropagation();
+    this.isAvatarMenuOpen = !this.isAvatarMenuOpen;
+  }
+
+  closeAvatarMenu(): void {
+    this.isAvatarMenuOpen = false;
+  }
+
   // ── Modal helpers ─────────────────────────────────────────────────────────
+
   openAddModal(): void {
     this.modalEditItem = null;
     this.isModalOpen   = true;
