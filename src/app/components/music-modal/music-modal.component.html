@@ -1,0 +1,209 @@
+<!-- ── Backdrop ──────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+
+    <!-- ── Modal Panel ───────────────────────────────────────────────────────── -->
+    <div class="modal-panel" role="dialog" [attr.aria-label]="modalTitle">
+
+        <!-- Header -->
+        <div class="modal-header">
+            <div class="modal-header-left">
+                <span class="modal-icon">{{ isEditMode ? '✏️' : '➕' }}</span>
+                <h2 class="modal-title">{{ modalTitle }}</h2>
+            </div>
+            <button class="close-btn" (click)="close()" aria-label="Close">
+                <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- ── Alert Banner ───────────────────────────────────────────────────── -->
+        <div class="alert alert-error" *ngIf="saveError"> ⚠️ {{ saveError }}</div>
+        <div class="alert alert-success" *ngIf="saveSuccess">{{ saveSuccess }}</div>
+
+        <!-- ── Form Body (scrollable) ─────────────────────────────────────────── -->
+        <div class="modal-body">
+            <form (ngSubmit)="onSubmit()" #musicForm="ngForm" novalidate>
+
+                <!-- ─ REQUIRED SECTION ─────────────────────────────────────────────── -->
+                <div class="form-section">
+                    <h3 class="section-label">Required Info</h3>
+
+                    <!-- Title -->
+                    <div class="field-group">
+                        <label for="m-title">
+                            Track Title <span class="req">*</span>
+                        </label>
+                        <input id="m-title" type="text" class="field-input" placeholder="e.g. Blinding Lights"
+                            [(ngModel)]="form.title" name="title" maxlength="200" required />
+                        <span class="char-count">{{ form.title.length }}/200</span>
+                    </div>
+
+                    <!-- URL -->
+                    <div class="field-group">
+                        <label for="m-url">
+                            Media URL <span class="req">*</span>
+                        </label>
+                        <input id="m-url" type="url" class="field-input"
+                            placeholder="https://www.youtube.com/watch?v=..." [(ngModel)]="form.url" name="url"
+                            (input)="onUrlChange()" (blur)="onUrlBlur()" required />
+                        <span class="field-hint">Paste a YouTube, Spotify, JioSaavn, or any media URL</span>
+                    </div>
+
+                    <!-- Category + Type row -->
+                    <div class="field-row">
+                        <div class="field-group half">
+                            <label for="m-category">
+                                Category <span class="req">*</span>
+                            </label>
+                            <select id="m-category" class="field-select" [(ngModel)]="form.category" name="category"
+                                (change)="onCategoryChange()" required>
+                                <option value="mp4">🎬 MP4 (Video)</option>
+                                <option value="mp3">🎵 MP3 (Audio)</option>
+                                <option value="reels">📱 Reels (Short video)</option>
+                            </select>
+                        </div>
+
+                        <div class="field-group half">
+                            <label for="m-type">
+                                Type <span class="req">*</span>
+                            </label>
+                            <select id="m-type" class="field-select" [(ngModel)]="form.type" name="type" required>
+                                <option value="video">▶ Video</option>
+                                <option value="audio">🎵 Audio</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─ OPTIONAL SECTION ─────────────────────────────────────────────── -->
+                <div class="form-section">
+                    <h3 class="section-label">Track Details <span class="optional-tag">optional</span></h3>
+
+                    <!-- Artist -->
+                    <div class="field-group">
+                        <label for="m-artist">Artist / Creator</label>
+                        <input id="m-artist" type="text" class="field-input" placeholder="e.g. Arijit Singh"
+                            [(ngModel)]="form.artist" name="artist" maxlength="100" />
+                    </div>
+
+                    <!-- Description -->
+                    <div class="field-group">
+                        <label for="m-desc">Description</label>
+                        <textarea id="m-desc" class="field-textarea"
+                            placeholder="e.g. Official music video from the After Hours album"
+                            [(ngModel)]="form.description" name="description" rows="3" maxlength="1000">
+            </textarea>
+                        <span class="char-count">{{ (form.description || '').length }}/1000</span>
+                    </div>
+
+                    <!-- Duration -->
+                    <div class="field-group">
+                        <label for="m-duration">Duration</label>
+                        <input id="m-duration" type="text" class="field-input field-half" placeholder="e.g. 3:45"
+                            [(ngModel)]="form.duration" name="duration" />
+                    </div>
+
+                    <!-- Platform -->
+                    <div class="field-group">
+                        <label for="m-platform">Platform / Source</label>
+                        <div class="platform-row">
+                            <select id="m-platform" class="field-select" [(ngModel)]="form.pickVideoUrlFrom"
+                                name="pickVideoUrlFrom">
+                                <option value="">— Auto-detect —</option>
+                                <option *ngFor="let p of platformOptions" [value]="p">{{ p }}</option>
+                            </select>
+                        </div>
+                        <span class="field-hint">Auto-detected from URL. Override if needed.</span>
+                    </div>
+                </div>
+
+                <!-- ─ MEDIA SECTION ─────────────────────────────────────────────────── -->
+                <div class="form-section">
+                    <h3 class="section-label">Media <span class="optional-tag">optional</span></h3>
+
+                    <!-- Thumbnail -->
+                    <div class="field-group">
+                        <label for="m-thumb">Thumbnail URL</label>
+                        <input id="m-thumb" type="url" class="field-input"
+                            placeholder="https://img.youtube.com/vi/VIDEO_ID/hqdefault.jpg" [(ngModel)]="form.thumbnail"
+                            name="thumbnail" />
+                        <span class="field-hint">Auto-filled for YouTube URLs. Leave blank to use emoji
+                            placeholder.</span>
+                        <!-- Thumbnail preview -->
+                        <div class="thumb-preview" *ngIf="form.thumbnail">
+                            <img [src]="form.thumbnail" alt="thumbnail preview" (error)="form.thumbnail = ''" />
+                        </div>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="field-group">
+                        <label for="m-tags">Tags</label>
+                        <input id="m-tags" type="text" class="field-input"
+                            placeholder="lofi, chill, bollywood, pop (comma separated)" [(ngModel)]="tagsInput"
+                            name="tagsInput" (input)="onTagsInput()" />
+                        <span class="field-hint">Separate tags with commas. Used for search.</span>
+                        <!-- Tag chips preview -->
+                        <div class="tags-preview" *ngIf="form.tags && form.tags.length">
+                            <span class="tag-chip" *ngFor="let tag of form.tags" (click)="removeTag(tag)"
+                                title="Click to remove">
+                                {{ tag }} ✕
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─ PINNED TOGGLE ─────────────────────────────────────────────────── -->
+                <div class="form-section pin-section">
+                    <label class="toggle-row" for="m-pinned">
+                        <div class="toggle-info">
+                            <span class="toggle-title">📌 Pin this track</span>
+                            <span class="toggle-sub">Pinned tracks appear at the top of all lists</span>
+                        </div>
+                        <div class="toggle-switch" [class.on]="form.pinned" (click)="form.pinned = !form.pinned">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- ─ EXAMPLE FILLED CARD (only in Add mode) ───────────────────────── -->
+                <div class="example-card" *ngIf="!isEditMode">
+                    <div class="example-header">
+                        <span>💡</span>
+                        <strong>Example — YouTube video</strong>
+                    </div>
+                    <div class="example-row"><span class="ex-label">Title</span><span class="ex-val">Blinding
+                            Lights</span></div>
+                    <div class="example-row"><span class="ex-label">URL</span><span
+                            class="ex-val ex-url">https://youtube.com/watch?v=4NRXx6U8ABQ</span></div>
+                    <div class="example-row"><span class="ex-label">Category</span><span class="ex-val">mp4</span></div>
+                    <div class="example-row"><span class="ex-label">Type</span><span class="ex-val">video</span></div>
+                    <div class="example-row"><span class="ex-label">Artist</span><span class="ex-val">The Weeknd</span>
+                    </div>
+                    <div class="example-row"><span class="ex-label">Duration</span><span class="ex-val">3:22</span>
+                    </div>
+                    <div class="example-row"><span class="ex-label">Tags</span><span class="ex-val">pop, retro,
+                            synth</span></div>
+                    <div class="example-row"><span class="ex-label">Platform</span><span class="ex-val">YouTube</span>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- ── Footer Actions ─────────────────────────────────────────────────── -->
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="close()" [disabled]="isSaving">
+                Cancel
+            </button>
+            <button type="button" class="btn-save" (click)="onSubmit()" [disabled]="isSaving">
+                <span *ngIf="!isSaving">{{ isEditMode ? '💾 Save Changes' : '➕ Add Track' }}</span>
+                <span *ngIf="isSaving" class="btn-loading">
+                    <span class="dot-flashing"></span> Saving...
+                </span>
+            </button>
+        </div>
+
+    </div>
+</div>

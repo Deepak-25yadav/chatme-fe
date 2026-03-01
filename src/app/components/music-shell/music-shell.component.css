@@ -23,12 +23,17 @@
   flex-shrink: 0;
   z-index: 10;
 }
+
 .header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.logo-icon { font-size: 22px; }
+
+.logo-icon {
+  font-size: 22px;
+}
+
 .logo-text {
   font-size: 18px;
   font-weight: 700;
@@ -38,11 +43,13 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
 .header-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .icon-btn {
   background: none;
   border: none;
@@ -54,6 +61,7 @@
   align-items: center;
   justify-content: center;
 }
+
 .icon-btn svg {
   width: 20px;
   height: 20px;
@@ -63,6 +71,7 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
 .avatar-circle {
   width: 32px;
   height: 32px;
@@ -75,35 +84,74 @@
   font-size: 13px;
 }
 
+/* ── Add Track Button ──────────────────────────────────────────────────────── */
+.add-track-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4e7e, #ff8c42);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.add-track-btn:hover {
+  opacity: 0.85;
+}
+
+.add-track-btn:active {
+  transform: scale(0.9);
+}
+
+.add-track-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
 /* ─── Page Content ───────────────────────────────────────────────────────── */
 .page-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 60px; /* bottom nav height */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-}
-.page-content::-webkit-scrollbar { display: none; }
-.page-content.has-player {
-  padding-bottom: 120px; /* nav + mini-player */
+  /* Bottom padding = bottom-nav(60) + mini-player(64) so last track isn't hidden */
+  padding-bottom: 130px;
 }
 
-/* ─── Bottom Navigation ──────────────────────────────────────────────────── */
+.page-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Bottom Navigation (FIXED — always pinned to viewport) ──────────────── */
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   display: flex;
   align-items: center;
   justify-content: space-around;
   height: 60px;
-  background: #0f0f0f;
+  background: rgba(10, 10, 10, 0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid #1e1e1e;
-  flex-shrink: 0;
-  z-index: 20;
-  position: relative;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.bottom-nav.player-visible {
-  bottom: 64px;
-}
+
+
 .nav-btn {
   flex: 1;
   display: flex;
@@ -119,8 +167,15 @@
   transition: color 0.2s ease;
   min-width: 0;
 }
-.nav-btn.active { color: #ff4e7e; }
-.nav-btn:active { transform: scale(0.92); }
+
+.nav-btn.active {
+  color: #ff4e7e;
+}
+
+.nav-btn:active {
+  transform: scale(0.92);
+}
+
 .nav-icon {
   width: 22px;
   height: 22px;
@@ -132,7 +187,11 @@
   flex-shrink: 0;
   transition: stroke 0.2s;
 }
-.nav-btn.active .nav-icon { stroke: #ff4e7e; }
+
+.nav-btn.active .nav-icon {
+  stroke: #ff4e7e;
+}
+
 .nav-label {
   font-size: 10px;
   font-weight: 500;
@@ -143,23 +202,44 @@
   max-width: 56px;
 }
 
-/* ─── Mini Player ────────────────────────────────────────────────────────── */
+/* ─── Mini Player (position:fixed — YouTube Music style) ───────────────── */
+/* Fixed positioning means NO parent overflow:hidden can ever clip it */
 .mini-player {
-  position: absolute;
+  position: fixed;
   bottom: 60px;
-  left: 0;
-  right: 0;
+  /* directly above the 60px bottom-nav */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   height: 64px;
-  background: #1a1a2e;
+  background: linear-gradient(135deg, #1e1e3e 0%, #0d0d1e 100%);
   border-top: 1px solid #2a2a3e;
+  border-left: none;
+  border-right: none;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 12px;
   cursor: pointer;
-  z-index: 15;
+  z-index: 99;
   overflow: hidden;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
+  animation: miniSlideUp 0.32s cubic-bezier(0.34, 1.1, 0.64, 1);
 }
+
+@keyframes miniSlideUp {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
 .mini-thumb {
   width: 44px;
   height: 44px;
@@ -168,7 +248,13 @@
   flex-shrink: 0;
   background: #2a2a3e;
 }
-.mini-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.mini-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .mini-thumb-placeholder {
   width: 100%;
   height: 100%;
@@ -177,10 +263,12 @@
   justify-content: center;
   font-size: 22px;
 }
+
 .mini-info {
   flex: 1;
   min-width: 0;
 }
+
 .mini-title {
   font-size: 13px;
   font-weight: 600;
@@ -189,6 +277,7 @@
   text-overflow: ellipsis;
   color: #fff;
 }
+
 .mini-artist {
   font-size: 11px;
   color: #888;
@@ -197,12 +286,14 @@
   text-overflow: ellipsis;
   margin-top: 2px;
 }
+
 .mini-controls {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
+
 .ctrl-btn {
   background: none;
   border: none;
@@ -217,21 +308,38 @@
   border-radius: 50%;
   transition: background 0.2s;
 }
-.play-btn { background: rgba(255, 78, 126, 0.15); }
-.play-btn:hover { background: rgba(255, 78, 126, 0.35); }
-.close-btn:hover { background: rgba(255,255,255,0.1); }
+
+.play-btn {
+  background: rgba(255, 78, 126, 0.15);
+}
+
+.play-btn:hover {
+  background: rgba(255, 78, 126, 0.35);
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .mini-progress-bar {
   position: absolute;
-  bottom: 0; left: 0;
+  bottom: 0;
+  left: 0;
   width: 40%;
   height: 2px;
   background: linear-gradient(90deg, #ff4e7e, #ff8c42);
   border-radius: 1px;
   animation: progressAnim 3s linear infinite;
 }
+
 @keyframes progressAnim {
-  from { width: 0%; }
-  to   { width: 100%; }
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
 }
 
 /* ─── Full Screen Player ─────────────────────────────────────────────────── */
@@ -245,16 +353,19 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
 .fp-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: rgba(10,10,10,0.95);
+  background: rgba(10, 10, 10, 0.95);
   border-bottom: 1px solid #1a1a1a;
   flex-shrink: 0;
 }
-.fp-back, .fp-close {
+
+.fp-back,
+.fp-close {
   background: none;
   border: none;
   color: #ccc;
@@ -268,6 +379,7 @@
   font-size: 18px;
   transition: background 0.2s;
 }
+
 .fp-back svg {
   width: 20px;
   height: 20px;
@@ -277,7 +389,12 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.fp-back:hover, .fp-close:hover { background: rgba(255,255,255,0.1); }
+
+.fp-back:hover,
+.fp-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .fp-label {
   font-size: 13px;
   font-weight: 600;
@@ -285,6 +402,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+
 .fp-body {
   flex: 1;
   display: flex;
@@ -292,34 +410,50 @@
   gap: 16px;
   padding: 16px;
 }
-.fp-media { width: 100%; border-radius: 12px; overflow: hidden; background: #111; }
+
+.fp-media {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111;
+}
+
 .video-iframe {
   width: 100%;
   aspect-ratio: 16/9;
   border: none;
   display: block;
 }
+
 .video-player {
   width: 100%;
   max-height: 260px;
   background: #000;
   border-radius: 12px;
 }
+
 .fp-audio-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
 }
+
 .fp-album-art {
   width: 220px;
   height: 220px;
   border-radius: 16px;
   overflow: hidden;
   background: #1a1a2e;
-  box-shadow: 0 20px 60px rgba(255,78,126,0.25);
+  box-shadow: 0 20px 60px rgba(255, 78, 126, 0.25);
 }
-.fp-album-art img { width: 100%; height: 100%; object-fit: cover; }
+
+.fp-album-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .fp-art-placeholder {
   width: 100%;
   height: 100%;
@@ -328,21 +462,44 @@
   justify-content: center;
   font-size: 80px;
 }
+
 .audio-player {
   width: 100%;
   border-radius: 12px;
   background: #1a1a2e;
 }
-.fp-track-info { display: flex; flex-direction: column; gap: 8px; }
+
+.fp-track-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .fp-title {
   font-size: 20px;
   font-weight: 700;
   line-height: 1.3;
   color: #fff;
 }
-.fp-artist { font-size: 14px; color: #ff4e7e; font-weight: 500; }
-.fp-desc { font-size: 13px; color: #777; line-height: 1.5; }
-.fp-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.fp-artist {
+  font-size: 14px;
+  color: #ff4e7e;
+  font-weight: 500;
+}
+
+.fp-desc {
+  font-size: 13px;
+  color: #777;
+  line-height: 1.5;
+}
+
+.fp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .tag-chip {
   background: #1e1e2e;
   border: 1px solid #2e2e4e;
@@ -351,6 +508,7 @@
   padding: 3px 10px;
   border-radius: 20px;
 }
+
 .fp-meta {
   display: flex;
   align-items: center;
@@ -358,7 +516,12 @@
   flex-wrap: wrap;
   margin-top: 4px;
 }
-.fp-meta-item { font-size: 12px; color: #666; }
+
+.fp-meta-item {
+  font-size: 12px;
+  color: #666;
+}
+
 .category-badge {
   background: rgba(255, 78, 126, 0.15);
   color: #ff4e7e;
@@ -368,6 +531,7 @@
   font-weight: 600;
   font-size: 11px;
 }
+
 .open-source-btn {
   display: inline-block;
   margin-top: 8px;
@@ -381,9 +545,37 @@
   text-align: center;
   transition: opacity 0.2s;
 }
-.open-source-btn:hover { opacity: 0.85; }
+
+.open-source-btn:hover {
+  opacity: 0.85;
+}
+
+/* Edit current track button inside full player */
+.edit-current-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: #1e1e2e;
+  border: 1px solid #2e2e4e;
+  color: #ccc;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  margin-top: 4px;
+  font-family: inherit;
+}
+
+.edit-current-btn:hover {
+  border-color: #ff4e7e;
+  color: #ff4e7e;
+}
 
 /* ─── Desktop expansion ──────────────────────────────────────────────────── */
 @media (min-width: 481px) {
-  .shell-wrapper { box-shadow: 0 0 60px rgba(0,0,0,0.8); }
+  .shell-wrapper {
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+  }
 }

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
-import { MusicItem } from '../../services/music.service';
+import { filter, distinctUntilChanged } from 'rxjs/operators';
+import { MusicItem, MusicService } from '../../services/music.service';
 
 @Component({
   selector: 'app-music-shell',
@@ -12,9 +12,14 @@ import { MusicItem } from '../../services/music.service';
 export class MusicShellComponent implements OnInit, OnDestroy {
   activeTab = 'home';
   currentTrack: MusicItem | null = null;
-  isPlayerVisible = false;
-  isPlaying = false;
+  isPlayerVisible  = false;
+  isPlaying        = false;
   isPlayerExpanded = false;
+
+  // ── Modal state ──────────────────────────────────────────────────────────────
+  isModalOpen    = false;
+  modalEditItem: MusicItem | null = null;
+  lastSavedTrack: MusicItem | null = null;
 
   tabs = [
     { id: 'home',    label: 'Home',    icon: 'home',    route: '/music' },
@@ -24,23 +29,57 @@ export class MusicShellComponent implements OnInit, OnDestroy {
     { id: 'upgrade', label: 'Upgrade', icon: 'upgrade', route: '/music/upgrade' },
   ];
 
-  private routeSub!: Subscription;
+  private subs: Subscription[] = [];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private musicService: MusicService   // ← injected here, NOT via child events
+  ) {}
 
   ngOnInit(): void {
+    // ── Route sync ─────────────────────────────────────────────────────────────
     this.syncTabFromRoute(this.router.url);
-    this.routeSub = this.router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe((e: any) => this.syncTabFromRoute(e.urlAfterRedirects));
+    this.subs.push(
+      this.router.events
+        .pipe(filter(e => e instanceof NavigationEnd))
+        .subscribe((e: any) => this.syncTabFromRoute(e.urlAfterRedirects))
+    );
+
+    // ── 🔑 THE FIX: subscribe directly to the service BehaviorSubject ──────────
+    // This runs inside Angular's zone automatically (HTTP/zone patching),
+    // so change detection fires and the template updates instantly.
+    this.subs.push(
+      this.musicService.currentTrack$
+        .pipe(distinctUntilChanged())
+        .subscribe((track) => {
+          console.log('[Shell] currentTrack$ received:', track?.title ?? 'null');
+          this.currentTrack    = track;
+          this.isPlayerVisible = !!track;
+          this.isPlaying       = !!track;
+          if (track) {
+            this.isPlayerExpanded = false; // always start as mini player
+          }
+          console.log('[Shell] isPlayerVisible:', this.isPlayerVisible);
+        })
+    );
+
+    // ── Edit request stream ────────────────────────────────────────────────────
+    this.subs.push(
+      this.musicService.editRequest$
+        .pipe(filter((t): t is MusicItem => t !== null))
+        .subscribe((track) => {
+          console.log('[Shell] editRequest$ received:', track.title);
+          this.openEditModal(track);
+        })
+    );
   }
 
   ngOnDestroy(): void {
-    this.routeSub?.unsubscribe();
+    this.subs.forEach(s => s.unsubscribe());
   }
 
   private syncTabFromRoute(url: string): void {
-    if (url === '/music' || url === '/music/home') {
+    if (url === '/music' || url === '/music/home' || url === '/music/') {
       this.activeTab = 'home';
     } else if (url.includes('/music/mp4')) {
       this.activeTab = 'mp4';
@@ -58,14 +97,6 @@ export class MusicShellComponent implements OnInit, OnDestroy {
     this.router.navigate([tab.route]);
   }
 
-  /** Called by child pages when user taps a track */
-  onTrackSelected(track: MusicItem): void {
-    this.currentTrack = track;
-    this.isPlayerVisible = true;
-    this.isPlaying = true;
-    this.isPlayerExpanded = false;
-  }
-
   togglePlayPause(): void {
     this.isPlaying = !this.isPlaying;
   }
@@ -79,30 +110,38 @@ export class MusicShellComponent implements OnInit, OnDestroy {
   }
 
   closePlayer(): void {
-    this.currentTrack = null;
-    this.isPlayerVisible = false;
-    this.isPlaying = false;
+    // Clear the shared service state — all subscribers (including this) update
+    this.musicService.clearPlayer();
     this.isPlayerExpanded = false;
   }
 
-  getPlatformIcon(track: MusicItem): string {
-    const platform = track.pickVideoUrlFrom?.toLowerCase() || '';
-    if (platform.includes('youtube')) return '▶';
-    if (platform.includes('spotify')) return '🎵';
-    if (platform.includes('jiosaavn') || platform.includes('jio')) return '🎶';
-    return '🎵';
-  }
-
-  /** Called when router-outlet activates a child component */
+  // ── onOutletActivated: kept for future extensibility, no longer critical ────
   onOutletActivated(component: any): void {
-    if (component && typeof component.trackSelected !== 'undefined') {
-      // subscribe to child's EventEmitter
-      component.trackSelected.subscribe((track: MusicItem) => {
-        this.onTrackSelected(track);
-      });
-    }
+    console.log('[Shell] outlet activated:', component?.constructor?.name);
   }
 
+  // ── Modal helpers ─────────────────────────────────────────────────────────
+  openAddModal(): void {
+    this.modalEditItem = null;
+    this.isModalOpen   = true;
+  }
+
+  openEditModal(track: MusicItem): void {
+    this.modalEditItem = track;
+    this.isModalOpen   = true;
+  }
+
+  closeModal(): void {
+    this.isModalOpen   = false;
+    this.modalEditItem = null;
+  }
+
+  onModalSaved(track: MusicItem): void {
+    this.lastSavedTrack = track;
+    this.closeModal();
+  }
+
+  // ── YouTube helpers ────────────────────────────────────────────────────────
   isYouTubeUrl(url: string): boolean {
     return url.includes('youtube.com') || url.includes('youtu.be');
   }
@@ -120,5 +159,13 @@ export class MusicShellComponent implements OnInit, OnDestroy {
     return videoId
       ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
       : url;
+  }
+
+  getPlatformIcon(track: MusicItem): string {
+    const platform = track.pickVideoUrlFrom?.toLowerCase() || '';
+    if (platform.includes('youtube')) return '▶';
+    if (platform.includes('spotify')) return '🎵';
+    if (platform.includes('jiosaavn') || platform.includes('jio')) return '🎶';
+    return '🎵';
   }
 }
