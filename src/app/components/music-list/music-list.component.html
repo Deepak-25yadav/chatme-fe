@@ -86,6 +86,15 @@
                         <div class="context-menu" *ngIf="activeMenuId === item._id">
                             <button class="ctx-item" (click)="onEditClick($event, item)">✏️ Edit</button>
                             <button class="ctx-item" (click)="onTrackClick(item)">▶ Play</button>
+                            <ng-container *ngIf="confirmDeleteId === item._id; else deleteBtn1">
+                                <button class="ctx-item ctx-delete-confirm" (click)="onDeleteClick($event, item)">⚠️
+                                    Confirm?</button>
+                                <button class="ctx-item ctx-cancel" (click)="cancelDelete($event)">✕ Cancel</button>
+                            </ng-container>
+                            <ng-template #deleteBtn1>
+                                <button class="ctx-item ctx-delete" (click)="onDeleteClick($event, item)">🗑️
+                                    Delete</button>
+                            </ng-template>
                         </div>
                     </div>
                 </div>
@@ -131,6 +140,15 @@
                         <div class="context-menu" *ngIf="activeMenuId === item._id">
                             <button class="ctx-item" (click)="onEditClick($event, item)">✏️ Edit</button>
                             <button class="ctx-item" (click)="onTrackClick(item)">▶ Play</button>
+                            <ng-container *ngIf="confirmDeleteId === item._id; else deleteBtn2">
+                                <button class="ctx-item ctx-delete-confirm" (click)="onDeleteClick($event, item)">⚠️
+                                    Confirm?</button>
+                                <button class="ctx-item ctx-cancel" (click)="cancelDelete($event)">✕ Cancel</button>
+                            </ng-container>
+                            <ng-template #deleteBtn2>
+                                <button class="ctx-item ctx-delete" (click)="onDeleteClick($event, item)">🗑️
+                                    Delete</button>
+                            </ng-template>
                         </div>
                     </div>
                 </div>

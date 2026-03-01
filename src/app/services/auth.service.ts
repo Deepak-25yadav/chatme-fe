@@ -8,7 +8,8 @@ export interface AuthUser {
   userId: string;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'vip';
+  chatAccess: boolean;   // admin-toggled; must be true for chat access
   avatar?: string;
   isOnline?: boolean;
   lastSeen?: Date;
@@ -52,6 +53,15 @@ export class AuthService {
     return this.currentUserValue?.role === 'admin';
   }
 
+  // Check if user can access chat
+  // Rule: role must be 'vip' (or 'admin') AND chatAccess must be true
+  get canAccessChat(): boolean {
+    const u = this.currentUserValue;
+    if (!u) return false;
+    if (u.role === 'admin') return true;          // admin always has access
+    return u.role === 'vip' && u.chatAccess === true;
+  }
+
   // Signup
   signup(name: string, email: string, password: string, role: 'admin' | 'user' = 'user'): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/api/auth/signup`, {
@@ -78,13 +88,23 @@ export class AuthService {
     );
   }
 
-  // Logout
+  // Logout — calls backend first (triggers admin email), then clears local data
   logout(): void {
-    // Clear auth data immediately
+    const token = this.getToken() ?? '';
+    // Always send Authorization header (empty string if not logged in — backend rejects gracefully)
+    const headers: { [key: string]: string } = { Authorization: `Bearer ${token}` };
+
+    // Call backend logout (non-blocking — always clear local data regardless)
+    this.http.post(`${this.apiUrl}/api/auth/logout`, {}, { headers }).subscribe({
+      next: () => console.log('[Auth] Logout API called ✅'),
+      error: (err) => console.warn('[Auth] Logout API error (continuing anyway):', err.status)
+    });
+
+    // Clear local storage + state immediately — don't wait for API
     this.clearAuthData();
-    // Navigate to login
-    this.router.navigate(['/login']);
+    this.router.navigate(['/music']);
   }
+
 
   // Get current user from server
   getCurrentUser(): Observable<AuthUser> {

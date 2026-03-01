@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angu
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MusicService, MusicItem } from '../../services/music.service';
+import { ActivityService } from '../../services/activity.service';
 
 @Component({
   selector: 'app-music-list',
@@ -17,6 +18,7 @@ export class MusicListComponent implements OnInit, OnDestroy {
 
   // Context menu (three-dot ⋮) state
   activeMenuId: string | null = null;
+  confirmDeleteId: string | null = null;  // track waiting for delete confirmation
 
   items: MusicItem[] = [];
   pinnedItems: MusicItem[] = [];
@@ -38,7 +40,10 @@ export class MusicListComponent implements OnInit, OnDestroy {
   pageEmoji = '🏠';
   pageDescription = 'All your music in one place';
 
-  constructor(private musicService: MusicService) {}
+  constructor(
+    private musicService: MusicService,
+    private activityService: ActivityService
+  ) {}
 
   ngOnInit(): void {
     this.setupPageMeta();
@@ -151,8 +156,9 @@ export class MusicListComponent implements OnInit, OnDestroy {
     const found = [...this.pinnedItems, ...this.items].find(i => i._id === track._id);
     if (found) found.views++;
     // ✅ Push directly into the shared service BehaviorSubject
-    // Shell subscribes to this in ngOnInit — NO EventEmitter chain needed
     this.musicService.playTrack(track);
+    // ✅ Fire activity email to admin
+    this.activityService.trackPlay(track);
   }
 
   onLike(event: Event, track: MusicItem): void {
@@ -172,6 +178,34 @@ export class MusicListComponent implements OnInit, OnDestroy {
     this.activeMenuId = null;
     // ✅ Push edit request directly into service — Shell subscribes to this
     this.musicService.requestEdit(track);
+  }
+
+  /** First click shows confirmation; second click deletes */
+  onDeleteClick(event: Event, track: MusicItem): void {
+    event.stopPropagation();
+    if (this.confirmDeleteId !== track._id) {
+      // First click — ask for confirmation
+      this.confirmDeleteId = track._id;
+      return;
+    }
+    // Second click — confirmed, do the delete
+    this.confirmDeleteId = null;
+    this.activeMenuId    = null;
+    this.musicService.hardDelete(track._id).subscribe({
+      next: () => {
+        // Remove from local arrays
+        this.pinnedItems = this.pinnedItems.filter(i => i._id !== track._id);
+        this.items       = this.items.filter(i => i._id !== track._id);
+        // ✅ Fire activity email to admin
+        this.activityService.trackDelete(track);
+      },
+      error: (err) => console.error('[MusicList] Delete failed ❌', err)
+    });
+  }
+
+  cancelDelete(event: Event): void {
+    event.stopPropagation();
+    this.confirmDeleteId = null;
   }
 
 

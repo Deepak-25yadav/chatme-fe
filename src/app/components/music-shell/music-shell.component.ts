@@ -3,6 +3,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter, distinctUntilChanged } from 'rxjs/operators';
 import { MusicItem, MusicService } from '../../services/music.service';
+import { AuthService, AuthUser } from '../../services/auth.service';
 
 @Component({
   selector: 'app-music-shell',
@@ -21,6 +22,12 @@ export class MusicShellComponent implements OnInit, OnDestroy {
   modalEditItem: MusicItem | null = null;
   lastSavedTrack: MusicItem | null = null;
 
+  // ── Avatar auth dropdown ─────────────────────────────────────────────────
+  isAvatarMenuOpen = false;
+  // Expose auth state to template
+  get isLoggedIn(): boolean          { return this.authService.isLoggedIn; }
+  get currentUser(): AuthUser | null { return this.authService.currentUserValue; }
+
   tabs = [
     { id: 'home',    label: 'Home',    icon: 'home',    route: '/music' },
     { id: 'mp4',     label: 'Videos',  icon: 'video',   route: '/music/mp4' },
@@ -33,7 +40,8 @@ export class MusicShellComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private musicService: MusicService   // ← injected here, NOT via child events
+    private musicService: MusicService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -120,7 +128,23 @@ export class MusicShellComponent implements OnInit, OnDestroy {
     console.log('[Shell] outlet activated:', component?.constructor?.name);
   }
 
+  // ── Avatar auth dropdown ───────────────────────────────────────────────────
+  toggleAvatarMenu(event: Event): void {
+    event.stopPropagation();
+    this.isAvatarMenuOpen = !this.isAvatarMenuOpen;
+  }
+
+  closeAvatarMenu(): void {
+    this.isAvatarMenuOpen = false;
+  }
+
+  handleLogout(): void {
+    this.closeAvatarMenu();
+    this.authService.logout();   // calls backend /api/auth/logout → triggers admin email
+  }
+
   // ── Modal helpers ─────────────────────────────────────────────────────────
+
   openAddModal(): void {
     this.modalEditItem = null;
     this.isModalOpen   = true;
