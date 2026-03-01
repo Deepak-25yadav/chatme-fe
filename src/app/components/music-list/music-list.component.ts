@@ -141,13 +141,18 @@ export class MusicListComponent implements OnInit, OnDestroy {
   }
 
   onTrackClick(track: MusicItem): void {
+    console.log('[MusicList] Track clicked → calling playTrack:', track.title);
     // Increment view count
-    this.musicService.incrementView(track._id).subscribe();
+    this.musicService.incrementView(track._id).subscribe({
+      next: (res) => console.log('[MusicList] View incremented ✅', res?.data),
+      error: (err) => console.error('[MusicList] View increment failed ❌', err)
+    });
     // Update local count
     const found = [...this.pinnedItems, ...this.items].find(i => i._id === track._id);
     if (found) found.views++;
-    // Emit to shell
-    this.trackSelected.emit(track);
+    // ✅ Push directly into the shared service BehaviorSubject
+    // Shell subscribes to this in ngOnInit — NO EventEmitter chain needed
+    this.musicService.playTrack(track);
   }
 
   onLike(event: Event, track: MusicItem): void {
@@ -165,8 +170,10 @@ export class MusicListComponent implements OnInit, OnDestroy {
   onEditClick(event: Event, track: MusicItem): void {
     event.stopPropagation();
     this.activeMenuId = null;
-    this.editRequested.emit(track);
+    // ✅ Push edit request directly into service — Shell subscribes to this
+    this.musicService.requestEdit(track);
   }
+
 
   closeMenu(): void {
     this.activeMenuId = null;

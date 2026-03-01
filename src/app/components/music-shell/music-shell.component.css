@@ -121,37 +121,36 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 60px;
-  /* bottom nav height */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* Bottom padding = bottom-nav(60) + mini-player(64) so last track isn't hidden */
+  padding-bottom: 130px;
 }
 
 .page-content::-webkit-scrollbar {
   display: none;
 }
 
-.page-content.has-player {
-  padding-bottom: 120px;
-  /* nav + mini-player */
-}
-
-/* ─── Bottom Navigation ──────────────────────────────────────────────────── */
+/* ─── Bottom Navigation (FIXED — always pinned to viewport) ──────────────── */
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   display: flex;
   align-items: center;
   justify-content: space-around;
   height: 60px;
-  background: #0f0f0f;
+  background: rgba(10, 10, 10, 0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid #1e1e1e;
-  flex-shrink: 0;
-  z-index: 20;
-  position: relative;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.bottom-nav.player-visible {
-  bottom: 64px;
-}
 
 .nav-btn {
   flex: 1;
@@ -203,22 +202,42 @@
   max-width: 56px;
 }
 
-/* ─── Mini Player ────────────────────────────────────────────────────────── */
+/* ─── Mini Player (position:fixed — YouTube Music style) ───────────────── */
+/* Fixed positioning means NO parent overflow:hidden can ever clip it */
 .mini-player {
-  position: absolute;
+  position: fixed;
   bottom: 60px;
-  left: 0;
-  right: 0;
+  /* directly above the 60px bottom-nav */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   height: 64px;
-  background: #1a1a2e;
+  background: linear-gradient(135deg, #1e1e3e 0%, #0d0d1e 100%);
   border-top: 1px solid #2a2a3e;
+  border-left: none;
+  border-right: none;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 12px;
   cursor: pointer;
-  z-index: 15;
+  z-index: 99;
   overflow: hidden;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
+  animation: miniSlideUp 0.32s cubic-bezier(0.34, 1.1, 0.64, 1);
+}
+
+@keyframes miniSlideUp {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
 }
 
 .mini-thumb {
