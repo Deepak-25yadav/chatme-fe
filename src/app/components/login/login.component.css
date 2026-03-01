@@ -198,6 +198,12 @@
   color: #5de095;
 }
 
+.alert-info {
+  background: rgba(78, 150, 255, 0.12);
+  border: 1px solid rgba(78, 150, 255, 0.3);
+  color: #7ab8ff;
+}
+
 /* ── Form ────────────────────────────────────────────────────────────────── */
 .auth-form {
   display: flex;

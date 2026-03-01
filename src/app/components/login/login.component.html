@@ -36,6 +36,10 @@
     <div class="alert alert-error" *ngIf="errorMessage">
       <span>⚠</span> {{ errorMessage }}
     </div>
+    <div class="alert alert-info" *ngIf="infoMessage">
+      <span>ℹ</span> {{ infoMessage }}
+    </div>
+
 
     <!-- Form -->
     <form class="auth-form" (ngSubmit)="onSubmit()">

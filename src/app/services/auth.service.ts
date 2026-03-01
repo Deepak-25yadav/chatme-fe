@@ -8,7 +8,8 @@ export interface AuthUser {
   userId: string;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'vip';
+  chatAccess: boolean;   // admin-toggled; must be true for chat access
   avatar?: string;
   isOnline?: boolean;
   lastSeen?: Date;
@@ -50,6 +51,15 @@ export class AuthService {
   // Check if user is admin
   get isAdmin(): boolean {
     return this.currentUserValue?.role === 'admin';
+  }
+
+  // Check if user can access chat
+  // Rule: role must be 'vip' (or 'admin') AND chatAccess must be true
+  get canAccessChat(): boolean {
+    const u = this.currentUserValue;
+    if (!u) return false;
+    if (u.role === 'admin') return true;          // admin always has access
+    return u.role === 'vip' && u.chatAccess === true;
   }
 
   // Signup
