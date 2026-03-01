@@ -1,0 +1,141 @@
+<div class="shell-wrapper">
+
+    <!-- ── Top Header ─────────────────────────────────────────────── -->
+    <header class="top-header">
+        <div class="header-left">
+            <span class="logo-icon">🎵</span>
+            <span class="logo-text">StreamPlay</span>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" title="Search" [routerLink]="['/music']" [queryParams]="{search: ''}">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+            </button>
+            <div class="avatar-circle">S</div>
+        </div>
+    </header>
+
+    <!-- ── Page Content ───────────────────────────────────────────── -->
+    <main class="page-content" [class.has-player]="isPlayerVisible">
+        <router-outlet (activate)="onOutletActivated($event)"></router-outlet>
+    </main>
+
+    <!-- ── Mini Player Bar ────────────────────────────────────────── -->
+    <div class="mini-player" *ngIf="isPlayerVisible && !isPlayerExpanded" (click)="expandPlayer()">
+        <div class="mini-thumb">
+            <img *ngIf="currentTrack?.thumbnail" [src]="currentTrack!.thumbnail" [alt]="currentTrack!.title" />
+            <div *ngIf="!currentTrack?.thumbnail" class="mini-thumb-placeholder">
+                <span>{{ currentTrack?.type === 'video' ? '🎬' : '🎵' }}</span>
+            </div>
+        </div>
+        <div class="mini-info">
+            <p class="mini-title">{{ currentTrack?.title }}</p>
+            <p class="mini-artist">{{ currentTrack?.artist || currentTrack?.pickVideoUrlFrom || 'Unknown' }}</p>
+        </div>
+        <div class="mini-controls" (click)="$event.stopPropagation()">
+            <button class="ctrl-btn play-btn" (click)="togglePlayPause()">
+                <span *ngIf="isPlaying">⏸</span>
+                <span *ngIf="!isPlaying">▶</span>
+            </button>
+            <button class="ctrl-btn close-btn" (click)="closePlayer()">✕</button>
+        </div>
+        <div class="mini-progress-bar"></div>
+    </div>
+
+    <!-- ── Full Player Overlay ────────────────────────────────────── -->
+    <div class="full-player" *ngIf="isPlayerVisible && isPlayerExpanded">
+        <div class="fp-header">
+            <button class="fp-back" (click)="collapsePlayer()">
+                <svg viewBox="0 0 24 24">
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+            </button>
+            <span class="fp-label">{{ currentTrack?.pickVideoUrlFrom || 'Now Playing' }}</span>
+            <button class="fp-close" (click)="closePlayer()">✕</button>
+        </div>
+
+        <div class="fp-body">
+            <!-- Video Player -->
+            <div class="fp-media" *ngIf="currentTrack?.type === 'video'">
+                <iframe *ngIf="isYouTubeUrl(currentTrack!.url)" [src]="getYouTubeEmbedUrl(currentTrack!.url) | safe"
+                    allowfullscreen allow="autoplay; encrypted-media" class="video-iframe">
+                </iframe>
+                <video *ngIf="!isYouTubeUrl(currentTrack!.url)" [src]="currentTrack!.url" controls autoplay
+                    class="video-player">
+                </video>
+            </div>
+
+            <!-- Audio Player -->
+            <div class="fp-audio-wrap" *ngIf="currentTrack?.type === 'audio'">
+                <div class="fp-album-art">
+                    <img *ngIf="currentTrack?.thumbnail" [src]="currentTrack!.thumbnail" [alt]="currentTrack!.title" />
+                    <div *ngIf="!currentTrack?.thumbnail" class="fp-art-placeholder">🎵</div>
+                </div>
+                <audio [src]="currentTrack!.url" controls autoplay class="audio-player">
+                </audio>
+            </div>
+
+            <!-- Track Info -->
+            <div class="fp-track-info">
+                <h2 class="fp-title">{{ currentTrack?.title }}</h2>
+                <p class="fp-artist">{{ currentTrack?.artist || 'Unknown Artist' }}</p>
+                <p class="fp-desc" *ngIf="currentTrack?.description">{{ currentTrack?.description }}</p>
+                <div class="fp-tags" *ngIf="currentTrack?.tags?.length">
+                    <span class="tag-chip" *ngFor="let tag of currentTrack?.tags">{{ tag }}</span>
+                </div>
+                <div class="fp-meta">
+                    <span class="fp-meta-item">👁 {{ currentTrack?.views }} views</span>
+                    <span class="fp-meta-item">❤ {{ currentTrack?.likes }} likes</span>
+                    <span class="fp-meta-item category-badge">{{ currentTrack?.category?.toUpperCase() }}</span>
+                </div>
+                <a *ngIf="currentTrack?.url" [href]="currentTrack!.url" target="_blank" class="open-source-btn">
+                    Open in {{ currentTrack?.pickVideoUrlFrom || 'Source' }} ↗
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Bottom Navigation ──────────────────────────────────────── -->
+    <nav class="bottom-nav" [class.player-visible]="isPlayerVisible && !isPlayerExpanded">
+        <button *ngFor="let tab of tabs" class="nav-btn" [class.active]="activeTab === tab.id"
+            (click)="navigateTo(tab)">
+            <!-- Home Icon -->
+            <svg *ngIf="tab.icon === 'home'" viewBox="0 0 24 24" class="nav-icon">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <!-- Video Icon -->
+            <svg *ngIf="tab.icon === 'video'" viewBox="0 0 24 24" class="nav-icon">
+                <polygon points="23 7 16 12 23 17 23 7" />
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+            <!-- Music Icon -->
+            <svg *ngIf="tab.icon === 'music'" viewBox="0 0 24 24" class="nav-icon">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+            </svg>
+            <!-- Reels Icon -->
+            <svg *ngIf="tab.icon === 'reels'" viewBox="0 0 24 24" class="nav-icon">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+                <line x1="7" y1="2" x2="7" y2="22" />
+                <line x1="17" y1="2" x2="17" y2="22" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <line x1="2" y1="7" x2="7" y2="7" />
+                <line x1="2" y1="17" x2="7" y2="17" />
+                <line x1="17" y1="17" x2="22" y2="17" />
+                <line x1="17" y1="7" x2="22" y2="7" />
+            </svg>
+            <!-- Upgrade Icon -->
+            <svg *ngIf="tab.icon === 'upgrade'" viewBox="0 0 24 24" class="nav-icon">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 8 12 16" />
+                <polyline points="8 12 12 8 16 12" />
+            </svg>
+            <span class="nav-label">{{ tab.label }}</span>
+        </button>
+    </nav>
+
+</div>

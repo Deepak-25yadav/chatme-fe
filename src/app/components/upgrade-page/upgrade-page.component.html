@@ -1,0 +1,31 @@
+<div class="upgrade-page">
+    <div class="upgrade-hero">
+        <div class="hero-glow"></div>
+        <h1 class="hero-title">Upgrade Your<br /><span class="gradient-text">Experience</span></h1>
+        <p class="hero-sub">Unlock unlimited music, videos & reels without any restrictions.</p>
+    </div>
+
+    <div class="plans-list">
+        <div class="plan-card" *ngFor="let plan of plans" [ngClass]="plan.color">
+            <div class="popular-badge" *ngIf="plan.popular">🔥 Most Popular</div>
+            <div class="plan-icon">{{ plan.icon }}</div>
+            <div class="plan-header">
+                <h2 class="plan-name">{{ plan.name }}</h2>
+                <div class="plan-price">
+                    <span class="price">{{ plan.price }}</span>
+                    <span class="period">{{ plan.period }}</span>
+                </div>
+            </div>
+            <ul class="features-list">
+                <li *ngFor="let f of plan.features">
+                    <span class="check">✓</span> {{ f }}
+                </li>
+            </ul>
+            <button class="plan-btn" [class.current-btn]="plan.current" [class.upgrade-btn]="!plan.current">
+                {{ plan.current ? 'Current Plan' : 'Get ' + plan.name }}
+            </button>
+        </div>
+    </div>
+
+    <p class="disclaimer">Subscription management coming soon. Stay tuned! 🚀</p>
+</div>

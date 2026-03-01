@@ -1,4 +1,5 @@
 :root {
+  /* Chat app tokens (kept as-is) */
   --color-brand-primary: #25d366;
   --color-brand-secondary: #128c7e;
   --color-surface: #f0f2f5;
@@ -7,6 +8,12 @@
   --color-text: #1f1f1f;
   --color-text-muted: #6b6b6b;
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+  /* Music app tokens */
+  --music-bg: #0f0f0f;
+  --music-surface: #1a1a1a;
+  --music-accent: #ff4e7e;
+  --music-accent2: #ff8c42;
 }
 
 *,
@@ -20,6 +27,8 @@
 html {
   font-size: 16px;
   height: 100%;
+  /* Prevent iOS bounce/overscroll on body */
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -35,13 +44,17 @@ html {
 }
 
 body {
-  min-height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--color-surface);
-  color: var(--color-text);
-  overflow-x: hidden;
+  background: var(--music-bg);
+  color: #fff;
+  overflow: hidden;
+  /* Safe area for notched phones */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 img {
@@ -56,4 +69,9 @@ button {
 input,
 button {
   font-size: 1rem;
+}
+
+/* Tap highlight removal for mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
