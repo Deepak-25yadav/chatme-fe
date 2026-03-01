@@ -223,6 +223,45 @@
   opacity: 0.88;
 }
 
+/* Log Out button — red tint */
+.logout-btn {
+  background: rgba(255, 78, 78, 0.1);
+  color: #ff8080;
+  border: 1px solid rgba(255, 78, 78, 0.25);
+}
+
+.logout-btn:hover {
+  background: rgba(255, 78, 78, 0.2);
+  color: #ff6060;
+}
+
+/* Role badge shown under user name */
+.auth-role-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  align-self: flex-start;
+}
+
+.auth-role-badge.vip {
+  background: rgba(255, 200, 50, 0.15);
+  color: #ffc832;
+  border-color: rgba(255, 200, 50, 0.3);
+}
+
+.auth-role-badge.admin {
+  background: rgba(160, 80, 255, 0.15);
+  color: #c87dff;
+  border-color: rgba(160, 80, 255, 0.3);
+}
+
 /* Invisible click-outside backdrop */
 .avatar-backdrop {
   position: fixed;

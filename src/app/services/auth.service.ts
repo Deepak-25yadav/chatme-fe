@@ -88,13 +88,23 @@ export class AuthService {
     );
   }
 
-  // Logout
+  // Logout — calls backend first (triggers admin email), then clears local data
   logout(): void {
-    // Clear auth data immediately
+    const token = this.getToken() ?? '';
+    // Always send Authorization header (empty string if not logged in — backend rejects gracefully)
+    const headers: { [key: string]: string } = { Authorization: `Bearer ${token}` };
+
+    // Call backend logout (non-blocking — always clear local data regardless)
+    this.http.post(`${this.apiUrl}/api/auth/logout`, {}, { headers }).subscribe({
+      next: () => console.log('[Auth] Logout API called ✅'),
+      error: (err) => console.warn('[Auth] Logout API error (continuing anyway):', err.status)
+    });
+
+    // Clear local storage + state immediately — don't wait for API
     this.clearAuthData();
-    // Navigate to login
-    this.router.navigate(['/login']);
+    this.router.navigate(['/music']);
   }
+
 
   // Get current user from server
   getCurrentUser(): Observable<AuthUser> {
