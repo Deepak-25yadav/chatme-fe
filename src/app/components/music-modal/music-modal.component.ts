@@ -3,6 +3,7 @@ import {
   OnInit, Output, SimpleChanges
 } from '@angular/core';
 import { MusicFormData, MusicItem, MusicService } from '../../services/music.service';
+import { ActivityService } from '../../services/activity.service';
 
 /** Blank form factory */
 const emptyForm = (): MusicFormData => ({
@@ -56,7 +57,10 @@ export class MusicModalComponent implements OnInit, OnChanges {
     reels: 'video',
   };
 
-  constructor(private musicService: MusicService) {}
+  constructor(
+    private musicService: MusicService,
+    private activityService: ActivityService
+  ) {}
 
   ngOnInit(): void { this.syncFormFromInput(); }
 
@@ -171,6 +175,8 @@ export class MusicModalComponent implements OnInit, OnChanges {
         next: (res) => {
           this.isSaving    = false;
           this.saveSuccess = '✅ Track updated successfully!';
+          // ✅ Fire activity email to admin
+          this.activityService.trackEdit(res.data);
           this.saved.emit(res.data);
           setTimeout(() => this.close(), 1200);
         },
@@ -184,6 +190,8 @@ export class MusicModalComponent implements OnInit, OnChanges {
         next: (res) => {
           this.isSaving    = false;
           this.saveSuccess = '✅ Track added successfully!';
+          // ✅ Fire activity email to admin
+          this.activityService.trackAdd(res.data);
           this.saved.emit(res.data);
           setTimeout(() => { this.form = emptyForm(); this.tagsInput = ''; this.saveSuccess = ''; }, 1500);
         },
