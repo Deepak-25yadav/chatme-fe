@@ -13,6 +13,13 @@
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
             </button>
+            <!-- ➕ Add Track button -->
+            <button class="add-track-btn" (click)="openAddModal()" title="Add new track">
+                <svg viewBox="0 0 24 24">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+            </button>
             <div class="avatar-circle">S</div>
         </div>
     </header>
@@ -73,8 +80,7 @@
                     <img *ngIf="currentTrack?.thumbnail" [src]="currentTrack!.thumbnail" [alt]="currentTrack!.title" />
                     <div *ngIf="!currentTrack?.thumbnail" class="fp-art-placeholder">🎵</div>
                 </div>
-                <audio [src]="currentTrack!.url" controls autoplay class="audio-player">
-                </audio>
+                <audio [src]="currentTrack!.url" controls autoplay class="audio-player"></audio>
             </div>
 
             <!-- Track Info -->
@@ -90,6 +96,10 @@
                     <span class="fp-meta-item">❤ {{ currentTrack?.likes }} likes</span>
                     <span class="fp-meta-item category-badge">{{ currentTrack?.category?.toUpperCase() }}</span>
                 </div>
+                <!-- Edit current track button -->
+                <button class="edit-current-btn" (click)="openEditModal(currentTrack!)">
+                    ✏️ Edit this track
+                </button>
                 <a *ngIf="currentTrack?.url" [href]="currentTrack!.url" target="_blank" class="open-source-btn">
                     Open in {{ currentTrack?.pickVideoUrlFrom || 'Source' }} ↗
                 </a>
@@ -137,5 +147,10 @@
             <span class="nav-label">{{ tab.label }}</span>
         </button>
     </nav>
+
+    <!-- ── Add / Edit Modal ────────────────────────────────────────── -->
+    <app-music-modal *ngIf="isModalOpen" [editItem]="modalEditItem" (saved)="onModalSaved($event)"
+        (closed)="closeModal()">
+    </app-music-modal>
 
 </div>

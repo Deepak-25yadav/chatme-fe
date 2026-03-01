@@ -53,6 +53,21 @@ export interface MusicQueryParams {
   pinned?: boolean;
 }
 
+/** Shape sent to POST /api/music and PATCH /api/music/:id */
+export interface MusicFormData {
+  title: string;
+  description?: string;
+  url: string;
+  category: 'mp3' | 'mp4' | 'reels';
+  type: 'audio' | 'video';
+  pinned?: boolean;
+  thumbnail?: string;
+  duration?: string;
+  artist?: string;
+  tags?: string[];
+  pickVideoUrlFrom?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MusicService {
   private baseUrl = `${environment.apiUrl}/api/music`;
@@ -90,5 +105,20 @@ export class MusicService {
   /** PATCH /api/music/:id/pin */
   togglePin(id: string): Observable<any> {
     return this.http.patch(`${this.baseUrl}/${id}/pin`, {});
+  }
+
+  /** POST /api/music — create new item */
+  create(data: MusicFormData): Observable<MusicSingleResponse> {
+    return this.http.post<MusicSingleResponse>(this.baseUrl, data);
+  }
+
+  /** PATCH /api/music/:id — partial edit */
+  update(id: string, data: Partial<MusicFormData>): Observable<MusicSingleResponse> {
+    return this.http.patch<MusicSingleResponse>(`${this.baseUrl}/${id}`, data);
+  }
+
+  /** DELETE /api/music/:id — hard delete */
+  hardDelete(id: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/${id}`);
   }
 }

@@ -16,6 +16,11 @@ export class MusicShellComponent implements OnInit, OnDestroy {
   isPlaying = false;
   isPlayerExpanded = false;
 
+  // ── Modal state ────────────────────────────────────────────────────────────
+  isModalOpen = false;
+  modalEditItem: MusicItem | null = null;
+  lastSavedTrack: MusicItem | null = null; // triggers list refresh signal
+
   tabs = [
     { id: 'home',    label: 'Home',    icon: 'home',    route: '/music' },
     { id: 'mp4',     label: 'Videos',  icon: 'video',   route: '/music/mp4' },
@@ -96,11 +101,45 @@ export class MusicShellComponent implements OnInit, OnDestroy {
   /** Called when router-outlet activates a child component */
   onOutletActivated(component: any): void {
     if (component && typeof component.trackSelected !== 'undefined') {
-      // subscribe to child's EventEmitter
       component.trackSelected.subscribe((track: MusicItem) => {
         this.onTrackSelected(track);
       });
     }
+    if (component && typeof component.editRequested !== 'undefined') {
+      component.editRequested.subscribe((track: MusicItem) => {
+        this.openEditModal(track);
+      });
+    }
+    if (component && typeof component.refreshSignal !== 'undefined') {
+      // inject the last saved track so the list can prepend it
+      if (this.lastSavedTrack) {
+        component.refreshSignal = this.lastSavedTrack;
+      }
+    }
+  }
+
+  // ── Modal helpers ──────────────────────────────────────────────────────────
+  openAddModal(): void {
+    this.modalEditItem = null;
+    this.isModalOpen   = true;
+  }
+
+  openEditModal(track: MusicItem): void {
+    this.modalEditItem = track;
+    this.isModalOpen   = true;
+  }
+
+  closeModal(): void {
+    this.isModalOpen   = false;
+    this.modalEditItem = null;
+  }
+
+  /** After a successful save, signal child list to reload */
+  onModalSaved(track: MusicItem): void {
+    this.lastSavedTrack = track;
+    // Tell the currently active child page to refresh
+    // We broadcast via a simple flag; child listens via ngOnChanges
+    this.closeModal();
   }
 
   isYouTubeUrl(url: string): boolean {

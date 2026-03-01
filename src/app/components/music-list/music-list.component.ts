@@ -11,7 +11,12 @@ import { MusicService, MusicItem } from '../../services/music.service';
 export class MusicListComponent implements OnInit, OnDestroy {
   /** 'home' shows all, 'mp4'|'mp3'|'reels' filters by category */
   @Input() mode: 'home' | 'mp4' | 'mp3' | 'reels' = 'home';
-  @Output() trackSelected = new EventEmitter<MusicItem>();
+  @Output() trackSelected  = new EventEmitter<MusicItem>();
+  /** Emitted when user taps Edit on a track card — shell opens modal */
+  @Output() editRequested  = new EventEmitter<MusicItem>();
+
+  // Context menu (three-dot ⋮) state
+  activeMenuId: string | null = null;
 
   items: MusicItem[] = [];
   pinnedItems: MusicItem[] = [];
@@ -150,6 +155,21 @@ export class MusicListComponent implements OnInit, OnDestroy {
     this.musicService.incrementLike(track._id).subscribe(res => {
       track.likes = res.data.likes;
     });
+  }
+
+  onMoreClick(event: Event, track: MusicItem): void {
+    event.stopPropagation();
+    this.activeMenuId = this.activeMenuId === track._id ? null : track._id;
+  }
+
+  onEditClick(event: Event, track: MusicItem): void {
+    event.stopPropagation();
+    this.activeMenuId = null;
+    this.editRequested.emit(track);
+  }
+
+  closeMenu(): void {
+    this.activeMenuId = null;
   }
 
   getCategoryLabel(category: string): string {

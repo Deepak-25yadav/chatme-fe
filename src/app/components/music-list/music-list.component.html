@@ -1,5 +1,5 @@
 <!-- ── Search & Filter Bar ──────────────────────────────────────────────── -->
-<div class="list-header">
+<div class="list-header" (click)="closeMenu()">
     <div class="search-bar">
         <svg class="search-icon" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" />
@@ -45,7 +45,7 @@
 </div>
 
 <!-- ── Content ───────────────────────────────────────────────────────────── -->
-<div class="content-wrap" *ngIf="!isLoading && allDisplayItems.length > 0">
+<div class="content-wrap" *ngIf="!isLoading && allDisplayItems.length > 0" (click)="closeMenu()">
 
     <!-- Pinned Section -->
     <div class="section" *ngIf="pinnedItems.length > 0">
@@ -55,18 +55,17 @@
         <div class="track-list">
             <div class="track-card pinned" *ngFor="let item of pinnedItems; trackBy: trackByFn"
                 (click)="onTrackClick(item)">
+
+                <!-- Thumbnail -->
                 <div class="track-thumb">
                     <img *ngIf="item.thumbnail" [src]="item.thumbnail" [alt]="item.title" loading="lazy" />
-                    <div *ngIf="!item.thumbnail" class="thumb-placeholder">
-                        {{ getInitials(item.title) }}
-                    </div>
-                    <div class="thumb-overlay">
-                        <span class="play-icon">▶</span>
-                    </div>
-                    <div class="type-badge" [ngClass]="getCategoryColor(item.category)">
-                        {{ getCategoryLabel(item.category) }}
-                    </div>
+                    <div *ngIf="!item.thumbnail" class="thumb-placeholder">{{ getInitials(item.title) }}</div>
+                    <div class="thumb-overlay"><span class="play-icon">▶</span></div>
+                    <div class="type-badge" [ngClass]="getCategoryColor(item.category)">{{
+                        getCategoryLabel(item.category) }}</div>
                 </div>
+
+                <!-- Info -->
                 <div class="track-info">
                     <p class="track-title">{{ item.title }}</p>
                     <p class="track-meta">
@@ -76,11 +75,19 @@
                     </p>
                     <p class="track-platform" *ngIf="item.pickVideoUrlFrom">{{ item.pickVideoUrlFrom }}</p>
                 </div>
-                <div class="track-actions">
+
+                <!-- Actions + Context Menu -->
+                <div class="track-actions" (click)="$event.stopPropagation()">
                     <button class="like-btn" (click)="onLike($event, item)" title="Like">
-                        ❤ <span>{{item.likes}}</span>
+                        ❤ <span>{{ item.likes }}</span>
                     </button>
-                    <span class="more-icon">⋮</span>
+                    <div class="more-wrap">
+                        <button class="more-btn" (click)="onMoreClick($event, item)" title="More options">⋮</button>
+                        <div class="context-menu" *ngIf="activeMenuId === item._id">
+                            <button class="ctx-item" (click)="onEditClick($event, item)">✏️ Edit</button>
+                            <button class="ctx-item" (click)="onTrackClick(item)">▶ Play</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -93,18 +100,17 @@
         </h3>
         <div class="track-list">
             <div class="track-card" *ngFor="let item of items; trackBy: trackByFn" (click)="onTrackClick(item)">
+
+                <!-- Thumbnail -->
                 <div class="track-thumb">
                     <img *ngIf="item.thumbnail" [src]="item.thumbnail" [alt]="item.title" loading="lazy" />
-                    <div *ngIf="!item.thumbnail" class="thumb-placeholder">
-                        {{ getInitials(item.title) }}
-                    </div>
-                    <div class="thumb-overlay">
-                        <span class="play-icon">▶</span>
-                    </div>
-                    <div class="type-badge" [ngClass]="getCategoryColor(item.category)">
-                        {{ getCategoryLabel(item.category) }}
-                    </div>
+                    <div *ngIf="!item.thumbnail" class="thumb-placeholder">{{ getInitials(item.title) }}</div>
+                    <div class="thumb-overlay"><span class="play-icon">▶</span></div>
+                    <div class="type-badge" [ngClass]="getCategoryColor(item.category)">{{
+                        getCategoryLabel(item.category) }}</div>
                 </div>
+
+                <!-- Info -->
                 <div class="track-info">
                     <p class="track-title">{{ item.title }}</p>
                     <p class="track-meta">
@@ -114,11 +120,19 @@
                     </p>
                     <p class="track-platform" *ngIf="item.pickVideoUrlFrom">{{ item.pickVideoUrlFrom }}</p>
                 </div>
-                <div class="track-actions">
+
+                <!-- Actions + Context Menu -->
+                <div class="track-actions" (click)="$event.stopPropagation()">
                     <button class="like-btn" (click)="onLike($event, item)" title="Like">
-                        ❤ <span>{{item.likes}}</span>
+                        ❤ <span>{{ item.likes }}</span>
                     </button>
-                    <span class="more-icon">⋮</span>
+                    <div class="more-wrap">
+                        <button class="more-btn" (click)="onMoreClick($event, item)" title="More options">⋮</button>
+                        <div class="context-menu" *ngIf="activeMenuId === item._id">
+                            <button class="ctx-item" (click)="onEditClick($event, item)">✏️ Edit</button>
+                            <button class="ctx-item" (click)="onTrackClick(item)">▶ Play</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

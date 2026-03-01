@@ -17,6 +17,7 @@ import { SignupComponent } from './components/signup/signup.component';
 // ── Music feature components ───────────────────────────────────────────────
 import { MusicShellComponent } from './components/music-shell/music-shell.component';
 import { MusicListComponent } from './components/music-list/music-list.component';
+import { MusicModalComponent } from './components/music-modal/music-modal.component';
 import { HomePageComponent } from './components/home-page/home-page.component';
 import { Mp4PageComponent } from './components/mp4-page/mp4-page.component';
 import { Mp3PageComponent } from './components/mp3-page/mp3-page.component';
@@ -43,6 +44,7 @@ import { ErrorInterceptor } from './interceptors/error.interceptor';
     // Music
     MusicShellComponent,
     MusicListComponent,
+    MusicModalComponent,
     HomePageComponent,
     Mp4PageComponent,
     Mp3PageComponent,
