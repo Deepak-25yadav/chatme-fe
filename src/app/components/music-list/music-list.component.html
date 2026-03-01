@@ -1,0 +1,134 @@
+<!-- ── Search & Filter Bar ──────────────────────────────────────────────── -->
+<div class="list-header">
+    <div class="search-bar">
+        <svg class="search-icon" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input type="text" class="search-input" placeholder="Search {{ pageTitle }}..." [(ngModel)]="searchQuery"
+            (input)="onSearchChange()" />
+        <button *ngIf="searchQuery" class="clear-btn" (click)="clearSearch()">✕</button>
+    </div>
+
+    <div class="filter-row">
+        <span class="page-badge">{{ pageEmoji }} {{ pageTitle }}</span>
+        <select class="sort-select" [(ngModel)]="sortOrder" (change)="onSortChange()">
+            <option value="latest">Latest</option>
+            <option value="oldest">Oldest</option>
+        </select>
+    </div>
+</div>
+
+<!-- ── Loading Skeleton ──────────────────────────────────────────────────── -->
+<div class="skeleton-list" *ngIf="isLoading">
+    <div class="skeleton-card" *ngFor="let s of [1,2,3,4,5,6]">
+        <div class="sk-thumb"></div>
+        <div class="sk-info">
+            <div class="sk-line sk-title"></div>
+            <div class="sk-line sk-sub"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Error State ───────────────────────────────────────────────────────── -->
+<div class="error-state" *ngIf="error && !isLoading">
+    <span class="error-icon">⚠️</span>
+    <p>{{ error }}</p>
+    <button class="retry-btn" (click)="loadMusic(1, true)">Retry</button>
+</div>
+
+<!-- ── Empty State ───────────────────────────────────────────────────────── -->
+<div class="empty-state" *ngIf="!isLoading && !error && allDisplayItems.length === 0">
+    <span class="empty-icon">{{ pageEmoji }}</span>
+    <p class="empty-title">No {{ pageTitle }} found</p>
+    <p class="empty-sub" *ngIf="searchQuery">Try a different search term</p>
+</div>
+
+<!-- ── Content ───────────────────────────────────────────────────────────── -->
+<div class="content-wrap" *ngIf="!isLoading && allDisplayItems.length > 0">
+
+    <!-- Pinned Section -->
+    <div class="section" *ngIf="pinnedItems.length > 0">
+        <h3 class="section-title">
+            <span class="pin-icon">📌</span> Quick Picks
+        </h3>
+        <div class="track-list">
+            <div class="track-card pinned" *ngFor="let item of pinnedItems; trackBy: trackByFn"
+                (click)="onTrackClick(item)">
+                <div class="track-thumb">
+                    <img *ngIf="item.thumbnail" [src]="item.thumbnail" [alt]="item.title" loading="lazy" />
+                    <div *ngIf="!item.thumbnail" class="thumb-placeholder">
+                        {{ getInitials(item.title) }}
+                    </div>
+                    <div class="thumb-overlay">
+                        <span class="play-icon">▶</span>
+                    </div>
+                    <div class="type-badge" [ngClass]="getCategoryColor(item.category)">
+                        {{ getCategoryLabel(item.category) }}
+                    </div>
+                </div>
+                <div class="track-info">
+                    <p class="track-title">{{ item.title }}</p>
+                    <p class="track-meta">
+                        <span *ngIf="item.artist">{{ item.artist }}</span>
+                        <span *ngIf="item.duration"> · {{ item.duration }}</span>
+                        <span *ngIf="item.views > 0"> · {{ formatViews(item.views) }} views</span>
+                    </p>
+                    <p class="track-platform" *ngIf="item.pickVideoUrlFrom">{{ item.pickVideoUrlFrom }}</p>
+                </div>
+                <div class="track-actions">
+                    <button class="like-btn" (click)="onLike($event, item)" title="Like">
+                        ❤ <span>{{item.likes}}</span>
+                    </button>
+                    <span class="more-icon">⋮</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main List Section -->
+    <div class="section">
+        <h3 class="section-title" *ngIf="mode === 'home'">
+            <span>🎧</span> All Tracks
+        </h3>
+        <div class="track-list">
+            <div class="track-card" *ngFor="let item of items; trackBy: trackByFn" (click)="onTrackClick(item)">
+                <div class="track-thumb">
+                    <img *ngIf="item.thumbnail" [src]="item.thumbnail" [alt]="item.title" loading="lazy" />
+                    <div *ngIf="!item.thumbnail" class="thumb-placeholder">
+                        {{ getInitials(item.title) }}
+                    </div>
+                    <div class="thumb-overlay">
+                        <span class="play-icon">▶</span>
+                    </div>
+                    <div class="type-badge" [ngClass]="getCategoryColor(item.category)">
+                        {{ getCategoryLabel(item.category) }}
+                    </div>
+                </div>
+                <div class="track-info">
+                    <p class="track-title">{{ item.title }}</p>
+                    <p class="track-meta">
+                        <span *ngIf="item.artist">{{ item.artist }}</span>
+                        <span *ngIf="item.duration"> · {{ item.duration }}</span>
+                        <span *ngIf="item.views > 0"> · {{ formatViews(item.views) }} views</span>
+                    </p>
+                    <p class="track-platform" *ngIf="item.pickVideoUrlFrom">{{ item.pickVideoUrlFrom }}</p>
+                </div>
+                <div class="track-actions">
+                    <button class="like-btn" (click)="onLike($event, item)" title="Like">
+                        ❤ <span>{{item.likes}}</span>
+                    </button>
+                    <span class="more-icon">⋮</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load More -->
+    <div class="load-more-wrap" *ngIf="hasNextPage">
+        <button class="load-more-btn" (click)="loadMore()" [disabled]="isLoadingMore">
+            <span *ngIf="!isLoadingMore">Load More</span>
+            <span *ngIf="isLoadingMore" class="spinner-text">Loading...</span>
+        </button>
+    </div>
+</div>

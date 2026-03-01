@@ -1,0 +1,124 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
+import { MusicItem } from '../../services/music.service';
+
+@Component({
+  selector: 'app-music-shell',
+  templateUrl: './music-shell.component.html',
+  styleUrls: ['./music-shell.component.css']
+})
+export class MusicShellComponent implements OnInit, OnDestroy {
+  activeTab = 'home';
+  currentTrack: MusicItem | null = null;
+  isPlayerVisible = false;
+  isPlaying = false;
+  isPlayerExpanded = false;
+
+  tabs = [
+    { id: 'home',    label: 'Home',    icon: 'home',    route: '/music' },
+    { id: 'mp4',     label: 'Videos',  icon: 'video',   route: '/music/mp4' },
+    { id: 'mp3',     label: 'Music',   icon: 'music',   route: '/music/mp3' },
+    { id: 'reels',   label: 'Reels',   icon: 'reels',   route: '/music/reels' },
+    { id: 'upgrade', label: 'Upgrade', icon: 'upgrade', route: '/music/upgrade' },
+  ];
+
+  private routeSub!: Subscription;
+
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    this.syncTabFromRoute(this.router.url);
+    this.routeSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe((e: any) => this.syncTabFromRoute(e.urlAfterRedirects));
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+  }
+
+  private syncTabFromRoute(url: string): void {
+    if (url === '/music' || url === '/music/home') {
+      this.activeTab = 'home';
+    } else if (url.includes('/music/mp4')) {
+      this.activeTab = 'mp4';
+    } else if (url.includes('/music/mp3')) {
+      this.activeTab = 'mp3';
+    } else if (url.includes('/music/reels')) {
+      this.activeTab = 'reels';
+    } else if (url.includes('/music/upgrade')) {
+      this.activeTab = 'upgrade';
+    }
+  }
+
+  navigateTo(tab: { id: string; route: string }): void {
+    this.activeTab = tab.id;
+    this.router.navigate([tab.route]);
+  }
+
+  /** Called by child pages when user taps a track */
+  onTrackSelected(track: MusicItem): void {
+    this.currentTrack = track;
+    this.isPlayerVisible = true;
+    this.isPlaying = true;
+    this.isPlayerExpanded = false;
+  }
+
+  togglePlayPause(): void {
+    this.isPlaying = !this.isPlaying;
+  }
+
+  expandPlayer(): void {
+    this.isPlayerExpanded = true;
+  }
+
+  collapsePlayer(): void {
+    this.isPlayerExpanded = false;
+  }
+
+  closePlayer(): void {
+    this.currentTrack = null;
+    this.isPlayerVisible = false;
+    this.isPlaying = false;
+    this.isPlayerExpanded = false;
+  }
+
+  getPlatformIcon(track: MusicItem): string {
+    const platform = track.pickVideoUrlFrom?.toLowerCase() || '';
+    if (platform.includes('youtube')) return '▶';
+    if (platform.includes('spotify')) return '🎵';
+    if (platform.includes('jiosaavn') || platform.includes('jio')) return '🎶';
+    return '🎵';
+  }
+
+  /** Called when router-outlet activates a child component */
+  onOutletActivated(component: any): void {
+    if (component && typeof component.trackSelected !== 'undefined') {
+      // subscribe to child's EventEmitter
+      component.trackSelected.subscribe((track: MusicItem) => {
+        this.onTrackSelected(track);
+      });
+    }
+  }
+
+  isYouTubeUrl(url: string): boolean {
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  }
+
+  getYouTubeEmbedUrl(url: string): string {
+    let videoId = '';
+    if (url.includes('youtube.com/watch')) {
+      const params = new URLSearchParams(url.split('?')[1]);
+      videoId = params.get('v') || '';
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    } else if (url.includes('youtube.com/shorts/')) {
+      videoId = url.split('/shorts/')[1]?.split('?')[0];
+    }
+    return videoId
+      ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
+      : url;
+  }
+}
