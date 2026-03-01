@@ -42,13 +42,13 @@
             <p class="mini-artist">{{ currentTrack?.artist || currentTrack?.pickVideoUrlFrom || 'Unknown' }}</p>
         </div>
         <div class="mini-controls" (click)="$event.stopPropagation()">
-            <button class="ctrl-btn play-btn" (click)="togglePlayPause()">
+            <!-- <button class="ctrl-btn play-btn" (click)="togglePlayPause()">
                 <span *ngIf="isPlaying">⏸</span>
                 <span *ngIf="!isPlaying">▶</span>
-            </button>
+            </button> -->
             <button class="ctrl-btn close-btn" (click)="closePlayer()">✕</button>
         </div>
-        <div class="mini-progress-bar"></div>
+        <!-- <div class="mini-progress-bar"></div> -->
     </div>
 
     <!-- ── Full Player Overlay ────────────────────────────────────── -->
