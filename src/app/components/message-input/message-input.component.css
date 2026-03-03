@@ -3,6 +3,8 @@
   background: rgba(255, 255, 255, 0.95);
   border-top: 1px solid var(--color-border);
   padding: 12px 14px;
+  /* Add padding for home indicator on notched devices */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .reply-preview-bar {
@@ -108,7 +110,7 @@
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 12px;
   max-height: 200px;
   overflow-y: auto;
@@ -146,7 +148,8 @@
 
 @media (max-width: 600px) {
   .message-input-container {
-    padding: 10px 8px 14px;
+    padding: 10px 8px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .input-wrapper {
@@ -168,4 +171,3 @@
     grid-template-columns: repeat(6, 1fr);
   }
 }
-
